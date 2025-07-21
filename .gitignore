@@ -5,3 +5,4 @@
 models/ 
 tests/*.png
 !tests/squareTestImage.png 
+*.pyc
