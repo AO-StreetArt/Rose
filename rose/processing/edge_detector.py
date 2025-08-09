@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+from ..preprocessing.image_utils import ImagePreprocessor
 
 class EdgeDetector:
     def __init__(self, hed_prototxt: str = None, hed_caffemodel: str = None):
@@ -18,10 +19,8 @@ class EdgeDetector:
         """
         Perform Canny edge detection on an input image.
         """
-        if len(image.shape) == 3:
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        else:
-            gray = image
+        # Use preprocessing method for grayscale conversion
+        gray = ImagePreprocessor.ensure_grayscale_image(image)
         edges = cv2.Canny(gray, threshold1, threshold2)
         return edges
 
@@ -31,10 +30,11 @@ class EdgeDetector:
         """
         if self.hed_net is None:
             raise RuntimeError("HED model is not loaded. Please provide model files during initialization.")
-        if len(image.shape) == 2:
-            image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-        blob = cv2.dnn.blobFromImage(image, scalefactor=1.0, size=(image.shape[1], image.shape[0]),
-                                     mean=(104.00698793, 116.66876762, 122.67891434), swapRB=False, crop=False)
+        
+        # Use preprocessing methods for color correction and blob creation
+        bgr_image = ImagePreprocessor.ensure_bgr_image(image)
+        blob = ImagePreprocessor.create_blob_for_hed(bgr_image)
+        
         self.hed_net.setInput(blob)
         hed_edges = self.hed_net.forward()
         hed_edges = hed_edges[0, 0]

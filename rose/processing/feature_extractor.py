@@ -4,6 +4,7 @@ from transformers import ViTImageProcessor, ViTForImageClassification
 from transformers import AutoImageProcessor, AutoModelForImageClassification
 import torch
 from PIL import Image
+from typing import Any, Dict
 
 class FeatureExtractor:
     """
@@ -18,7 +19,7 @@ class FeatureExtractor:
         self.dinov2_processor = AutoImageProcessor.from_pretrained('facebook/dinov2-base')
         self.dinov2_model = AutoModelForImageClassification.from_pretrained('facebook/dinov2-base')
 
-    def extract_features(self, img_array: np.ndarray):
+    def extract_features(self, img_array: np.ndarray) -> np.ndarray:
         """
         Accepts a numpy array (preprocessed image) and returns VGG16 predictions.
         Args:
@@ -30,7 +31,7 @@ class FeatureExtractor:
         preds = self.model.predict(img_array)
         return preds 
 
-    def extract_features_vit(self, img_array: np.ndarray):
+    def extract_features_vit(self, img_array: np.ndarray) -> Any:
         """
         Accepts a numpy array (preprocessed image) and returns Google ViT predictions.
         Args:
@@ -50,7 +51,7 @@ class FeatureExtractor:
         
         return outputs
 
-    def extract_features_dinov2(self, img_array: np.ndarray):
+    def extract_features_dinov2(self, img_array: np.ndarray) -> Any:
         """
         Accepts a numpy array (preprocessed image) and returns Facebook DINOv2 predictions.
         Args:
@@ -69,3 +70,22 @@ class FeatureExtractor:
             outputs = self.dinov2_model(**inputs)
         
         return outputs 
+
+    def classify_image_vit(self, img_array: np.ndarray) -> dict:
+        """
+        Classifies an image using the ViT model and returns the top predicted class and its score.
+        Args:
+            img_array (np.ndarray): Preprocessed image array (shape: (1, 224, 224, 3)).
+        Returns:
+            dict: Dictionary with 'label' and 'score' for the top prediction.
+        """
+        img = Image.fromarray(img_array[0].astype('uint8'))
+        inputs = self.vit_processor(images=img, return_tensors="pt")
+        with torch.no_grad():
+            outputs = self.vit_model(**inputs)
+            logits = outputs.logits
+            probs = torch.nn.functional.softmax(logits, dim=1)
+            top_prob, top_idx = torch.max(probs, dim=1)
+            label = self.vit_model.config.id2label[top_idx.item()]
+            score = top_prob.item()
+        return {"label": label, "score": score} 

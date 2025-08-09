@@ -6,6 +6,7 @@ from rose.preprocessing.image_utils import ImagePreprocessor
 import os
 from PIL import Image, ImageDraw, ImageFont
 from tensorflow.keras.applications.vgg16 import decode_predictions
+import cv2
 
 def test_feature_extractor_init():
     fe = FeatureExtractor()
@@ -98,3 +99,30 @@ def test_extract_features_dinov2_on_square_image():
     assert logits is not None, "No logits returned by DINOv2 model."
     assert logits.shape[0] == 1
     assert np.any(logits.detach().cpu().numpy() != 0), "No features detected by DINOv2 (all logits are zero)." 
+
+def test_classify_image_vit_returns_label_and_score():
+    extractor = FeatureExtractor()
+    # Create a dummy image (random noise, shape: (1, 224, 224, 3))
+    img_array = np.random.randint(0, 256, (1, 224, 224, 3), dtype=np.uint8)
+    result = extractor.classify_image_vit(img_array)
+    assert isinstance(result, dict), "Result should be a dictionary."
+    assert 'label' in result, "Result should contain a 'label' key."
+    assert 'score' in result, "Result should contain a 'score' key."
+    assert isinstance(result['label'], str), "Label should be a string."
+    assert isinstance(result['score'], float), "Score should be a float." 
+
+def test_classify_image_vit_on_square_image():
+    extractor = FeatureExtractor()
+    img_path = os.path.join(os.path.dirname(__file__), 'squareTestImage.png')
+    image = cv2.imread(img_path, cv2.IMREAD_COLOR)
+    assert image is not None, f"Failed to load image at {img_path}"
+    # Resize to (224, 224) as required by ViT
+    image_resized = cv2.resize(image, (224, 224))
+    img_array = image_resized[np.newaxis, ...]
+    result = extractor.classify_image_vit(img_array)
+    assert isinstance(result, dict), "Result should be a dictionary."
+    assert 'label' in result, "Result should contain a 'label' key."
+    assert 'score' in result, "Result should contain a 'score' key."
+    assert isinstance(result['label'], str), "Label should be a string."
+    assert isinstance(result['score'], float), "Score should be a float."
+    assert result['label'], "Label should not be empty." 

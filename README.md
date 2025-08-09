@@ -38,6 +38,75 @@ Rose processes a series of images to:
    pip install pillow tensorflow torch transformers
    ```
 
+## Advanced 3D Model Support: Installation Instructions for TRELLIS, VGGT, and Hunyuan3D 2.0
+
+The library supports advanced image-to-3D conversion using three state-of-the-art models: Microsoft TRELLIS, Facebook VGGT, and Tencent Hunyuan3D 2.0. These models are **optional** and require additional dependencies and setup. You only need to install the requirements for the models you plan to use.
+
+### System Requirements (for all models)
+- **OS:** Linux recommended (Windows/macOS may work for some models)
+- **Python:** 3.8+ (Hunyuan3D 2.0 requires Python 3.11)
+- **GPU:** NVIDIA GPU with at least 12GB VRAM (16GB+ recommended for full pipelines)
+- **CUDA:** Version matching your PyTorch install (see each model's instructions)
+
+---
+
+### 1. Microsoft TRELLIS
+- **Repo:** https://github.com/microsoft/TRELLIS
+- **Installation:**
+  ```bash
+  git clone --recurse-submodules https://github.com/microsoft/TRELLIS.git
+  cd TRELLIS
+  . ./setup.sh --new-env --basic --xformers --flash-attn --diffoctreerast --spconv --mipgaussian --kaolin --nvdiffrast
+  # This creates a conda environment and installs all dependencies
+  ```
+- **Notes:**
+  - Requires conda and CUDA 11.8 or 12.2
+  - See the TRELLIS repo for troubleshooting and advanced options
+
+---
+
+### 2. Facebook VGGT
+- **Repo:** https://github.com/facebookresearch/vggt
+- **Installation:**
+  ```bash
+  git clone https://github.com/facebookresearch/vggt.git
+  cd vggt
+  pip install -r requirements.txt
+  pip install -r requirements_demo.txt
+  ```
+- **Notes:**
+  - Requires PyTorch, Pillow, numpy, and other dependencies (handled by requirements.txt)
+  - CUDA version must match your PyTorch install
+  - See the VGGT repo for details and troubleshooting
+
+---
+
+### 3. Tencent Hunyuan3D 2.0
+- **Repo:** https://github.com/Tencent/Hunyuan3D-2
+- **Installation:**
+  ```bash
+  git clone https://github.com/Tencent/Hunyuan3D-2.git
+  cd Hunyuan3D-2
+  pip install -r requirements.txt
+  pip install -e .
+  # For texture generation, also run:
+  cd hy3dgen/texgen/custom_rasterizer
+  python3 setup.py install
+  cd ../../..
+  cd hy3dgen/texgen/differentiable_renderer
+  python3 setup.py install
+  ```
+- **Notes:**
+  - Requires Python 3.11 and CUDA 12.4
+  - See the Hunyuan3D-2 repo for troubleshooting and advanced usage
+
+---
+
+**Tip:**
+- Each model will download its own pre-trained weights from Hugging Face or the official repo on first use.
+- For best results, use a dedicated virtual environment for each model.
+- These models are large and require significant GPU memory and disk space.
+
 ## Downloading HED Model Files
 
 To use the Holistically-Nested Edge Detection (HED) features, you need to download the pre-trained model files:

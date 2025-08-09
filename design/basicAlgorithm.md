@@ -43,14 +43,3 @@ First, Rose looks at each image and determines:
 
 Then, the sets of elements in each frame are compared, and we can determine what elements are shared vs unique.
 For shared elements, the relative positions of each are then put through a basic 3D distance function to return the movement vector.  If given a framerate, this can then be multiplied to give a velocity.
-
-### Pre-trained models
-
-https://keras.io/examples/vision/depth_estimation/
-https://keras.io/api/applications/#extract-features-with-vgg16
-
-Alongside depth estimation, we'll want a VGG16 model to detect features.  The VGG16 model will find objects in the image, and then the Convnet trained against the DIODE dataset will figure out how far those features are from the camera.  Note - a dual-camera setup would allow for a much more accurate distance algorithm, and would likely allow for significant improvements in feature extraction as well.
-
-### Classification Algorithm
-
-For each image Rose is examining, major features are categorized via the ResNet algorithms (https://keras.io/api/applications/resnet/#resnet50v2-function).  There are a lot of options here honestly.

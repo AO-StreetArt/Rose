@@ -2,6 +2,7 @@ from transformers import DPTImageProcessor, DPTForDepthEstimation
 import torch
 import numpy as np
 from PIL import Image
+from typing import Optional
 
 class DepthEstimator:
     """
@@ -15,7 +16,7 @@ class DepthEstimator:
         self.zoedepth_processor = AutoImageProcessor.from_pretrained("Intel/zoedepth-nyu-kitti")
         self.zoedepth_model = AutoModelForDepthEstimation.from_pretrained("Intel/zoedepth-nyu-kitti")
 
-    def estimate_depth(self, img: Image.Image):
+    def estimate_depth(self, img: Image.Image) -> np.ndarray:
         """
         Accepts a PIL Image object and returns a depth map using the Intel/dpt-large model.
         Args:
@@ -36,7 +37,7 @@ class DepthEstimator:
             ).squeeze().cpu().numpy()
         return prediction 
 
-    def estimate_depth_zoedepth(self, img: Image.Image):
+    def estimate_depth_zoedepth(self, img: Image.Image) -> Optional[np.ndarray]:
         """
         Accepts a PIL Image object and returns a depth map using the Intel/zoedepth-nyu-kitti model.
         Args:
