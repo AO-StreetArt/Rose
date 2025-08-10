@@ -7,7 +7,7 @@ This module provides image comparison functionality using cosine similarity on e
 The `ImageComparator` class in `rose/processing/image_comparator.py` allows you to compare images using cosine similarity on features extracted by different deep learning models:
 
 - **VGG16**: Traditional CNN-based feature extraction
-- **ViT (Vision Transformer)**: Transformer-based feature extraction  
+- **ViT (Vision Transformer)**: Transformer-based feature extraction
 - **DINOv2**: Self-supervised learning-based feature extraction
 
 ## Features
@@ -90,15 +90,15 @@ for i, result in enumerate(similar_images):
 ```python
 # Compare using ViT features
 result_vit = comparator.compare_images(
-    "image1.jpg", 
-    "image2.jpg", 
+    "image1.jpg",
+    "image2.jpg",
     method='vit'
 )
 
 # Compare using DINOv2 features
 result_dinov2 = comparator.compare_images(
-    "image1.jpg", 
-    "image2.jpg", 
+    "image1.jpg",
+    "image2.jpg",
     method='dinov2'
 )
 ```
@@ -109,7 +109,7 @@ result_dinov2 = comparator.compare_images(
 # Compare without feature normalization
 result = comparator.compare_images(
     "image1.jpg",
-    "image2.jpg", 
+    "image2.jpg",
     method='vgg16',
     normalize=False
 )
@@ -214,4 +214,4 @@ python3 -m pytest tests/test_image_comparator.py -v
 - Images are automatically resized to 224x224 pixels for feature extraction
 - Features are normalized by default for better comparison results
 - Cosine similarity scores range from -1 to 1, where 1 indicates identical features
-- The module integrates with the existing `FeatureExtractor` class for consistency 
+- The module integrates with the existing `FeatureExtractor` class for consistency

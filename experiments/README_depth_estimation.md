@@ -53,10 +53,10 @@ estimator = DepthEstimator("facebook/dpt-large")
 if estimator.load_model():
     # Preprocess image
     image = estimator.preprocess_image("path/to/image.jpg")
-    
+
     # Estimate depth
     depth_map = estimator.estimate_depth(image)
-    
+
     # Get statistics
     stats = estimator.get_depth_statistics(depth_map)
     print(f"Depth range: {stats['min_depth']} to {stats['max_depth']}")
@@ -140,4 +140,4 @@ The system tries multiple models in order:
 - Implement batch processing
 - Add more visualization options
 - Support for custom model fine-tuning
-- Real-time processing capabilities 
+- Real-time processing capabilities

@@ -29,7 +29,7 @@ class FeatureExtractor:
         """
         img_array = preprocess_input(img_array)
         preds = self.model.predict(img_array)
-        return preds 
+        return preds
 
     def extract_features_vit(self, img_array: np.ndarray) -> Any:
         """
@@ -41,14 +41,14 @@ class FeatureExtractor:
         """
         # Convert numpy array to PIL Image
         img = Image.fromarray(img_array[0].astype('uint8'))
-        
+
         # Process image with ViT processor
         inputs = self.vit_processor(images=img, return_tensors="pt")
-        
+
         # Get predictions
         with torch.no_grad():
             outputs = self.vit_model(**inputs)
-        
+
         return outputs
 
     def extract_features_dinov2(self, img_array: np.ndarray) -> Any:
@@ -61,15 +61,15 @@ class FeatureExtractor:
         """
         # Convert numpy array to PIL Image
         img = Image.fromarray(img_array[0].astype('uint8'))
-        
+
         # Process image with DINOv2 processor
         inputs = self.dinov2_processor(images=img, return_tensors="pt")
-        
+
         # Get predictions
         with torch.no_grad():
             outputs = self.dinov2_model(**inputs)
-        
-        return outputs 
+
+        return outputs
 
     def classify_image_vit(self, img_array: np.ndarray) -> dict:
         """
@@ -88,4 +88,4 @@ class FeatureExtractor:
             top_prob, top_idx = torch.max(probs, dim=1)
             label = self.vit_model.config.id2label[top_idx.item()]
             score = top_prob.item()
-        return {"label": label, "score": score} 
+        return {"label": label, "score": score}

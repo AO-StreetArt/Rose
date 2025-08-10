@@ -24,4 +24,4 @@ class FeatureDetector:
         # Use preprocessing method for grayscale conversion
         gray = ImagePreprocessor.ensure_grayscale_image(image)
         keypoints, descriptors = self.orb.detectAndCompute(gray, None)
-        return keypoints, descriptors 
+        return keypoints, descriptors

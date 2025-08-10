@@ -23,7 +23,7 @@ Then, we can ask more difficult questions:
 
 ## 3D Environment Storage
 
-The outputs of the below algorithms are stored in long term storage.  This can be done locally or remotely, and deeper logic starts with the short-term storage before moving to long-term storage.  
+The outputs of the below algorithms are stored in long term storage.  This can be done locally or remotely, and deeper logic starts with the short-term storage before moving to long-term storage.
 
 This storage could take several forms, but should account for elements/features detected, and their relative size, position, and movement in 3D space.
 

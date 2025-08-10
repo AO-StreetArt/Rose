@@ -35,7 +35,7 @@ class DepthEstimator:
                 mode="bicubic",
                 align_corners=False,
             ).squeeze().cpu().numpy()
-        return prediction 
+        return prediction
 
     def estimate_depth_zoedepth(self, img: Image.Image) -> Optional[np.ndarray]:
         """
@@ -54,4 +54,4 @@ class DepthEstimator:
             return depth_map
         except Exception as e:
             print(f"Error during ZoeDepth estimation: {e}")
-            return None 
+            return None
