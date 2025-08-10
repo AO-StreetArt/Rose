@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Optional, List, Dict, Tuple
 import threading
 import queue
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
 from PIL import Image
@@ -84,9 +85,19 @@ class VideoProcessor:
         self.frame_queue = queue.Queue(maxsize=3)
         self.result_queue = queue.Queue(maxsize=3)
         
+        # Thread pool for parallel processing
+        # Use optimal number of workers: 2 for depth+detection + 1 for segmentation
+        optimal_workers = min(3, os.cpu_count() or 2)
+        self.executor = ThreadPoolExecutor(max_workers=optimal_workers)
+        print(f"Initialized thread pool with {optimal_workers} workers for parallel processing")
+        
         # Processing state
         self.is_processing = False
         self.processing_thread = None
+        
+        # Performance monitoring
+        self.processing_times = []
+        self.last_processing_start = None
         
         print("Video processor initialized successfully!")
     
@@ -119,24 +130,17 @@ class VideoProcessor:
         
         return object_classes
     
-    def process_frame(self, frame: np.ndarray) -> Dict:
+    def _estimate_depth(self, pil_image: Image.Image) -> Optional[np.ndarray]:
         """
-        Process a single frame with depth estimation, object detection, and segmentation.
+        Estimate depth for an image. This method runs in parallel.
         
         Args:
-            frame (np.ndarray): Input frame as numpy array (BGR format from OpenCV)
+            pil_image (Image.Image): PIL Image to process
             
         Returns:
-            Dict: Processing results containing depth map, detections, and segmentation masks
+            Optional[np.ndarray]: Depth map or None if failed
         """
         try:
-            # Convert BGR to RGB for processing
-            frame_rgb = ImagePreprocessor.convertBGRtoRGB(frame)
-            
-            # Convert to PIL Image for processing
-            pil_image = Image.fromarray(frame_rgb)
-            
-            # 1. Depth Estimation
             print("Estimating depth...")
             if self.use_zoedepth:
                 depth_map = self.depth_estimator.estimate_depth_zoedepth(pil_image)
@@ -145,21 +149,81 @@ class VideoProcessor:
                     depth_map = self.depth_estimator.estimate_depth(pil_image)
             else:
                 depth_map = self.depth_estimator.estimate_depth(pil_image)
+            return depth_map
+        except Exception as e:
+            print(f"Error in depth estimation: {e}")
+            return None
+    
+    def _detect_objects(self, frame_rgb: np.ndarray) -> List[Dict]:
+        """
+        Detect objects in an image. This method runs in parallel.
+        
+        Args:
+            frame_rgb (np.ndarray): RGB image array
             
-            # 2. Object Detection
+        Returns:
+            List[Dict]: List of detected objects
+        """
+        try:
             print("Detecting objects...")
-            detections = self.object_detector.detect_objects(frame_rgb)
+            return self.object_detector.detect_objects(frame_rgb)
+        except Exception as e:
+            print(f"Error in object detection: {e}")
+            return []
+    
+    def process_frame(self, frame: np.ndarray) -> Dict:
+        """
+        Process a single frame with depth estimation, object detection, and segmentation.
+        Uses parallel processing for independent operations.
+        
+        Args:
+            frame (np.ndarray): Input frame as numpy array (BGR format from OpenCV)
+            
+        Returns:
+            Dict: Processing results containing depth map, detections, and segmentation masks
+        """
+        try:
+            # Start performance monitoring
+            start_time = time.time()
+            
+            # Convert BGR to RGB for processing
+            frame_rgb = ImagePreprocessor.convertBGRtoRGB(frame)
+            
+            # Convert to PIL Image for processing
+            pil_image = Image.fromarray(frame_rgb)
+            
+            # Start parallel processing of independent operations
+            print("Starting parallel processing...")
+            
+            # 1. Submit depth estimation and object detection tasks simultaneously
+            depth_future = self.executor.submit(self._estimate_depth, pil_image)
+            detection_future = self.executor.submit(self._detect_objects, frame_rgb)
+            
+            # 2. Wait for both results (they run in parallel)
+            depth_map = depth_future.result()
+            detections = detection_future.result()
             
             # 3. Extract object prompts for segmentation
             object_prompts = self.extract_object_prompts(detections)
             
-            # 4. Image Segmentation (if objects detected)
+            # 4. Image Segmentation (if objects detected) - runs after detection completes
             segmentation_masks = None
             if object_prompts:
                 print(f"Performing segmentation with prompts: {object_prompts}")
                 segmentation_masks = self.image_segmenter.segment(pil_image, object_prompts)
             else:
                 print("No objects detected for segmentation")
+            
+            # Record processing time
+            processing_time = time.time() - start_time
+            self.processing_times.append(processing_time)
+            
+            # Keep only last 100 processing times for rolling average
+            if len(self.processing_times) > 100:
+                self.processing_times.pop(0)
+            
+            avg_time = sum(self.processing_times) / len(self.processing_times)
+            print(f"Frame processed in {processing_time:.3f}s (avg: {avg_time:.3f}s)")
             
             return {
                 'depth_map': depth_map,
@@ -217,11 +281,32 @@ class VideoProcessor:
         print("Processing thread started")
     
     def stop_processing(self):
-        """Stop the processing thread."""
+        """Stop the processing thread and cleanup resources."""
         self.is_processing = False
         if self.processing_thread:
             self.processing_thread.join(timeout=1.0)
-        print("Processing thread stopped")
+        
+        # Shutdown the thread pool executor
+        self.executor.shutdown(wait=True)
+        print("Processing thread stopped and thread pool shutdown")
+    
+    def get_performance_stats(self) -> Dict[str, float]:
+        """
+        Get performance statistics for the current processing session.
+        
+        Returns:
+            Dict[str, float]: Performance metrics
+        """
+        if not self.processing_times:
+            return {}
+        
+        return {
+            'total_frames_processed': len(self.processing_times),
+            'average_processing_time': sum(self.processing_times) / len(self.processing_times),
+            'min_processing_time': min(self.processing_times),
+            'max_processing_time': max(self.processing_times),
+            'estimated_fps': 1.0 / (sum(self.processing_times) / len(self.processing_times))
+        }
     
     def create_visualization(self, result: Dict) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -304,7 +389,8 @@ def process_video_stream(camera_id: int = 0,
                         object_confidence: float = 0.5,
                         object_model: str = 'faster_rcnn',
                         colormap: str = 'viridis',
-                        max_objects_for_segmentation: int = 5) -> None:
+                        max_objects_for_segmentation: int = 5,
+                        frame_skip: int = 5) -> None:
     """
     Process video stream from webcam with real-time analysis.
     
@@ -316,6 +402,7 @@ def process_video_stream(camera_id: int = 0,
         object_model (str): Object detection model to use
         colormap (str): Colormap for depth visualization
         max_objects_for_segmentation (int): Maximum objects to use for segmentation
+        frame_skip (int): Process every Nth frame (higher values = faster processing)
     """
     # Initialize video processor
     processor = VideoProcessor(
@@ -351,6 +438,7 @@ def process_video_stream(camera_id: int = 0,
     print(f"Object detection model: {object_model.upper()}")
     print(f"Object confidence threshold: {object_confidence}")
     print(f"Colormap: {colormap}")
+    print(f"Frame skip: Every {frame_skip}th frame will be processed")
     print("Press 'q' to quit, 's' to save current frame")
     
     # Start processing thread
@@ -376,6 +464,27 @@ def process_video_stream(camera_id: int = 0,
             if not ret:
                 print("Error: Could not read frame")
                 break
+            
+            # Frame skipping logic - only process every Nth frame
+            if frame_count % frame_skip != 0:
+                # Show the frame without processing
+                cv2.imshow('Original + Detections', frame)
+                cv2.imshow('Depth Map', frame)
+                cv2.imshow('Segmentation', frame)
+                
+                # Handle key presses for non-processed frames
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord('q'):
+                    print("Quit requested")
+                    break
+                elif key == ord('s'):
+                    # Save current frame
+                    timestamp = int(time.time())
+                    cv2.imwrite(f"frame_{timestamp}.jpg", frame)
+                    print(f"Saved frame_{timestamp}.jpg")
+                
+                frame_count += 1
+                continue
             
             # Add frame to processing queue
             try:
@@ -457,6 +566,8 @@ Examples:
   python process_video_stream.py --zoedepth --object-confidence 0.7
   python process_video_stream.py --object-model ssd --colormap plasma
   python process_video_stream.py --max-objects 3
+  python process_video_stream.py --frame-skip 10
+  python process_video_stream.py --frame-skip 2 --fps 60
         """
     )
     
@@ -508,6 +619,13 @@ Examples:
         help="Maximum number of objects to use for segmentation prompts (default: 5)"
     )
     
+    parser.add_argument(
+        "--frame-skip",
+        type=int,
+        default=5,
+        help="Process every Nth frame (default: 5, higher values = faster processing)"
+    )
+    
     args = parser.parse_args()
     
     try:
@@ -518,7 +636,8 @@ Examples:
             object_confidence=args.object_confidence,
             object_model=args.object_model,
             colormap=args.colormap,
-            max_objects_for_segmentation=args.max_objects
+            max_objects_for_segmentation=args.max_objects,
+            frame_skip=args.frame_skip
         )
     except KeyboardInterrupt:
         print("\nOperation cancelled by user.")

@@ -14,11 +14,10 @@ class TestImageComparator:
     def setup_method(self):
         """Set up test fixtures."""
         self.comparator = ImageComparator()
-        self.test_image_path = "tests/squareTestImage.png"
+        self.test_image_path = "tests/temp_test_image.png"
         
-        # Create a simple test image if it doesn't exist
-        if not os.path.exists(self.test_image_path):
-            self._create_test_image()
+        # Create a simple test image for testing
+        self._create_test_image()
     
     def _create_test_image(self):
         """Create a simple test image for testing."""
@@ -211,6 +210,6 @@ class TestImageComparator:
     
     def teardown_method(self):
         """Clean up test fixtures."""
-        # Remove test image if it was created
+        # Remove temporary test image if it was created
         if os.path.exists(self.test_image_path):
             os.remove(self.test_image_path) 
