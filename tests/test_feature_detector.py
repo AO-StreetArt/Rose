@@ -42,7 +42,7 @@ def test_feature_detection_grayscale_vs_color():
     base_image = np.zeros((100, 100), dtype=np.uint8)
     cv2.rectangle(base_image, (20, 20), (80, 80), 255, 2)
     cv2.circle(base_image, (50, 50), 15, 255, 2)
-    
+
     # Create color version
     color_image = np.zeros((100, 100, 3), dtype=np.uint8)
     color_image[:, :, 0] = base_image  # Blue channel
@@ -50,19 +50,19 @@ def test_feature_detection_grayscale_vs_color():
     color_image[:, :, 2] = base_image  # Red channel
 
     detector = FeatureDetector()
-    
+
     # Test with grayscale
     gray_keypoints, gray_descriptors = detector.detect_and_compute(base_image)
-    
+
     # Test with color (should be converted to grayscale)
     color_keypoints, color_descriptors = detector.detect_and_compute(color_image)
-    
+
     # Both should produce results
     assert gray_keypoints is not None
     assert color_keypoints is not None
     assert gray_descriptors is not None
     assert color_descriptors is not None
-    
+
     # Should have similar number of keypoints (allowing for some variation)
     assert abs(len(gray_keypoints) - len(color_keypoints)) <= 5
 
@@ -70,10 +70,10 @@ def test_orb_feature_detection_on_square_image():
     """Test ORB feature detection on the square test image if it exists."""
     # Path to the test image
     img_path = os.path.join(os.path.dirname(__file__), 'squareTestImage.png')
-    
+
     if not os.path.exists(img_path):
         pytest.skip(f"Test image not found at {img_path}")
-    
+
     image = cv2.imread(img_path, cv2.IMREAD_COLOR)
     assert image is not None, f"Failed to load image at {img_path}"
 
@@ -82,4 +82,4 @@ def test_orb_feature_detection_on_square_image():
 
     assert keypoints is not None, "Keypoints should not be None."
     assert len(keypoints) > 0, "No features detected in the test image."
-    assert descriptors is not None, "Descriptors should not be None." 
+    assert descriptors is not None, "Descriptors should not be None."

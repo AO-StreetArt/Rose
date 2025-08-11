@@ -40,4 +40,4 @@ def test_estimate_depth_zoedepth_on_square_image():
     norm_depth = (255 * (depth_map - np.min(depth_map)) / (np.ptp(depth_map) + 1e-8)).astype(np.uint8)
     depth_img = Image.fromarray(norm_depth)
     save_path = os.path.join(os.path.dirname(__file__), 'zoedepth_map_squareTestImage.png')
-    depth_img.save(save_path) 
+    depth_img.save(save_path)

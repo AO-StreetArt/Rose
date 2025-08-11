@@ -155,4 +155,4 @@ from rose.exec.process_video_stream import VideoProcessor
 processor = VideoProcessor(use_zoedepth=True, object_confidence=0.6)
 result = processor.process_frame(frame)
 original, depth, seg = processor.create_visualization(result)
-``` 
+```

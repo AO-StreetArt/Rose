@@ -30,14 +30,14 @@ class EdgeDetector:
         """
         if self.hed_net is None:
             raise RuntimeError("HED model is not loaded. Please provide model files during initialization.")
-        
+
         # Use preprocessing methods for color correction and blob creation
         bgr_image = ImagePreprocessor.ensure_bgr_image(image)
         blob = ImagePreprocessor.create_blob_for_hed(bgr_image)
-        
+
         self.hed_net.setInput(blob)
         hed_edges = self.hed_net.forward()
         hed_edges = hed_edges[0, 0]
         hed_edges = cv2.resize(hed_edges, (image.shape[1], image.shape[0]))
         hed_edges = (255 * hed_edges).astype(np.uint8)
-        return hed_edges 
+        return hed_edges

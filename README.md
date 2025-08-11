@@ -136,4 +136,4 @@ PYTHONPATH=. pytest tests
 This will also generate output images in the `tests/` folder for manual review.
 
 ## License
-MIT License © 2024 Alex Barry 
+MIT License © 2024 Alex Barry

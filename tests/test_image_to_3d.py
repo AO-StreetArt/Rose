@@ -61,4 +61,4 @@ def test_image_to_3d_hunyuan(monkeypatch):
     with patch("rose.processing.image_to_3d.Hunyuan3DDiTFlowMatchingPipeline", None):
         converter = ImageTo3DConverter()
         with pytest.raises(ImportError):
-            converter.image_to_3d_hunyuan(dummy_image_path) 
+            converter.image_to_3d_hunyuan(dummy_image_path)

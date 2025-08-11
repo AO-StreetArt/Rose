@@ -62,11 +62,11 @@ class ImagePreprocessor:
             np.ndarray: Blob suitable for HED model input.
         """
         blob = cv2.dnn.blobFromImage(
-            image, 
-            scalefactor=1.0, 
+            image,
+            scalefactor=1.0,
             size=(image.shape[1], image.shape[0]),
-            mean=(104.00698793, 116.66876762, 122.67891434), 
-            swapRB=False, 
+            mean=(104.00698793, 116.66876762, 122.67891434),
+            swapRB=False,
             crop=False
         )
         return blob
@@ -85,21 +85,21 @@ class ImagePreprocessor:
         else:
             gray = image
         return gray
-    
+
     @staticmethod
     def convertBGRtoRGB(image_input: np.ndarray):
         return cv2.cvtColor(image_input, cv2.COLOR_BGR2RGB)
 
     @staticmethod
-    def load_and_preprocess_for_feature_extraction(image_input: Union[np.ndarray, str], 
+    def load_and_preprocess_for_feature_extraction(image_input: Union[np.ndarray, str],
                                                  target_size: Tuple[int, int] = (224, 224)) -> np.ndarray:
         """
         Load and preprocess an image for feature extraction.
-        
+
         Args:
             image_input (Union[np.ndarray, str]): Image as numpy array or file path
             target_size (Tuple[int, int]): Target size for resizing (default: (224, 224))
-            
+
         Returns:
             np.ndarray: Preprocessed image array with batch dimension
         """
@@ -112,20 +112,20 @@ class ImagePreprocessor:
         else:
             # Assume it's already a numpy array
             img = image_input.copy()
-        
+
         # Convert grayscale to RGB if needed
         if len(img.shape) == 2:
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-        
+
         # Resize to target size (standard size for many models)
         img = cv2.resize(img, target_size)
-        
+
         # Normalize to [0, 1] range
         img = img.astype(np.float32) / 255.0
-        
+
         # Add batch dimension
         img = np.expand_dims(img, axis=0)
-        
-        return img 
 
- 
+        return img
+
+

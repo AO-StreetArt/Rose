@@ -115,4 +115,4 @@ class ImageTo3DConverter:
             return mesh
         except Exception as e:
             print(f"Error during Hunyuan3D image-to-3D conversion: {e}")
-            return None 
+            return None

@@ -6,7 +6,7 @@ Below is a review of image processing techniques currently implemented.
 
 ### Depth Estimation
 
-Identify how far a given pixel is from the camera.  
+Identify how far a given pixel is from the camera.
 Output - Depth Map
 
 ### Edge Detection
@@ -31,7 +31,7 @@ Output - a 3D model
 
 ### Object Detector
 
-What's in the image?  What do we recognize?  Cars, people, chickens, etc?  
+What's in the image?  What do we recognize?  Cars, people, chickens, etc?
 
 In a final system, re-training this constantly based on new information will have a HUGE impact.  This lets us recognize new things, which is part of learning.
 
@@ -55,9 +55,9 @@ How similar are two images?  Relies on Feature Extraction to identify important 
 
 ## Putting it All Together
 
-Ok, so fundamentally, we're getting one frame at a time from a camera.  So we have a 'current image', a buffer of 'next images', and 'previous images'.  
+Ok, so fundamentally, we're getting one frame at a time from a camera.  So we have a 'current image', a buffer of 'next images', and 'previous images'.
 
-There's an order in which we need to do things - the 'current image' needs to flow through a pipeline, get placed in 'previous images', and at each step in the process we're emitting new information to the decision-making cortex.  Things at the front of the pipeline are for supporting basic functions like movement.  Then, we get into higher-level thinking in the rear end of the 'current image' pipeline, and in processing the 'previous images' where we look at things like inter-frame analysis and video analysis.  
+There's an order in which we need to do things - the 'current image' needs to flow through a pipeline, get placed in 'previous images', and at each step in the process we're emitting new information to the decision-making cortex.  Things at the front of the pipeline are for supporting basic functions like movement.  Then, we get into higher-level thinking in the rear end of the 'current image' pipeline, and in processing the 'previous images' where we look at things like inter-frame analysis and video analysis.
 
 I will note that the "right" answer for the ordering here (and whether we use binocular vs monocular depth detection), is going to be something that can change based on the machine in question.  In nature, binocular vision is more common in predators for whom accurate depth perception is critical to catching prey, while monocular vision is more common in prey animals who prioritize a wide field of vision.  We're going to focus on monocular here.
 

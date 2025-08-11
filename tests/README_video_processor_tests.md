@@ -149,10 +149,10 @@ def test_new_feature(self, video_processor_default, sample_frame):
     """Test new feature functionality."""
     # Arrange
     expected_result = "expected_value"
-    
+
     # Act
     result = video_processor_default.new_feature(sample_frame)
-    
+
     # Assert
     assert result == expected_result
     assert isinstance(result, str)
@@ -182,4 +182,4 @@ Current test status: **32/32 tests passing** ✅
 - Edge cases: 7/7 ✅
 - Integration: 1/1 ✅
 
-All tests pass consistently across different environments and Python versions. 
+All tests pass consistently across different environments and Python versions.

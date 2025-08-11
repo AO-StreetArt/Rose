@@ -32,7 +32,7 @@ classifier = VideoClassifier()
 # Define candidate labels
 candidate_labels = [
     "playing sports",
-    "cooking food", 
+    "cooking food",
     "dancing",
     "reading a book"
 ]
@@ -191,4 +191,4 @@ X-CLIP (Cross-modal Language-Image Pre-training) is a state-of-the-art model for
 - Generate cross-modal embeddings
 - Handle various video lengths and qualities
 
-The model is pre-trained on large-scale video-text datasets and can be used without fine-tuning for many downstream tasks. 
+The model is pre-trained on large-scale video-text datasets and can be used without fine-tuning for many downstream tasks.

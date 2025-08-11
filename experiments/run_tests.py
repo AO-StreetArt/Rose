@@ -17,17 +17,17 @@ def run_tests():
     """Run all tests."""
     # Create test suite
     test_suite = unittest.TestSuite()
-    
+
     # Add unit tests
     test_suite.addTest(unittest.makeSuite(TestDepthEstimator))
-    
+
     # Add integration tests (optional - can be skipped)
     # test_suite.addTest(unittest.makeSuite(TestDepthEstimatorIntegration))
-    
+
     # Run tests
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(test_suite)
-    
+
     # Return exit code
     return 0 if result.wasSuccessful() else 1
 
@@ -35,4 +35,4 @@ def run_tests():
 if __name__ == "__main__":
     print("Running depth estimation tests...")
     exit_code = run_tests()
-    sys.exit(exit_code) 
+    sys.exit(exit_code)

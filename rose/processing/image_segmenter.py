@@ -40,4 +40,4 @@ class ImageSegmenter:
                 align_corners=False
             ).squeeze(1)
             masks = torch.sigmoid(masks)
-        return masks.cpu().numpy() 
+        return masks.cpu().numpy()

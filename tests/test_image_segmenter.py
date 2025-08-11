@@ -21,4 +21,4 @@ def test_image_segmenter_on_square_image():
     assert masks.shape[1] == image.height and masks.shape[2] == image.width, (
         f"Mask shape {masks.shape} does not match image size {(image.height, image.width)}"
     )
-    assert (0.0 <= masks).all() and (masks <= 1.0).all(), "Mask values should be in [0, 1]" 
+    assert (0.0 <= masks).all() and (masks <= 1.0).all(), "Mask values should be in [0, 1]"
