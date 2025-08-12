@@ -1,9 +1,8 @@
 import numpy as np
 import torch
 from PIL import Image
-from typing import List, Dict, Tuple, Optional, Union
-import json
-import os
+from typing import List, Dict
+
 
 class ObjectDetector:
     """

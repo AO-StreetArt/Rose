@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from typing import List, Dict, Any, Optional, Union, Tuple
+from typing import List, Dict, Any, Union
 from PIL import Image
 import cv2
 from transformers import AutoProcessor, AutoModel
@@ -59,7 +59,6 @@ class VideoClassifier:
                 raise ValueError(f"Could not open video file: {video_path}")
 
             total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            fps = cap.get(cv2.CAP_PROP_FPS)
 
             # Calculate frame indices to extract
             frame_indices = np.linspace(0, total_frames - 1, num_frames, dtype=int)
@@ -174,7 +173,7 @@ class VideoClassifier:
             }
 
             logger.info(f"Video classification completed. Top label: {results['top_label']} "
-                       f"(score: {results['top_score']:.4f})")
+                        f"(score: {results['top_score']:.4f})")
 
             return results
 

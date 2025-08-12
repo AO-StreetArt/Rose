@@ -3,6 +3,7 @@ import numpy as np
 import os
 from ..preprocessing.image_utils import ImagePreprocessor
 
+
 class EdgeDetector:
     def __init__(self, hed_prototxt: str = None, hed_caffemodel: str = None):
         """

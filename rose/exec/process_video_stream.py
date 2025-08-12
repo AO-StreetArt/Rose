@@ -22,13 +22,14 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-import os
+# flake8: noqa: E402
 import argparse
+import os
 import time
 from typing import Optional, List, Dict, Tuple
 import threading
 import queue
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 from PIL import Image
@@ -98,8 +99,6 @@ class VideoProcessor:
         # Performance monitoring
         self.processing_times = []
         self.last_processing_start = None
-
-        print("Video processor initialized successfully!")
 
     def extract_object_prompts(self, detections: List[Dict]) -> List[str]:
         """
@@ -384,13 +383,13 @@ class VideoProcessor:
 
 
 def process_video_stream(camera_id: int = 0,
-                          fps: int = 30,
-                          use_zoedepth: bool = False,
-                          object_confidence: float = 0.5,
-                          object_model: str = 'faster_rcnn',
-                          colormap: str = 'viridis',
-                          max_objects_for_segmentation: int = 5,
-                          frame_skip: int = 5) -> None:
+                        fps: int = 30,
+                        use_zoedepth: bool = False,
+                        object_confidence: float = 0.5,
+                        object_model: str = 'faster_rcnn',
+                        colormap: str = 'viridis',
+                        max_objects_for_segmentation: int = 5,
+                        frame_skip: int = 5) -> None:
     """
     Process video stream from webcam with real-time analysis.
 
@@ -431,7 +430,7 @@ def process_video_stream(camera_id: int = 0,
     actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    print(f"Camera opened successfully!")
+    print("Camera opened successfully!")
     print(f"Resolution: {actual_width}x{actual_height}")
     print(f"FPS: {actual_fps}")
     print(f"Using {'ZoeDepth' if use_zoedepth else 'DPT'} for depth estimation")

@@ -9,13 +9,15 @@ and can be used as a starting point for custom video processing applications.
 # Add the project root to the path
 import sys
 from pathlib import Path
+
+# Set up path before other imports
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-import os
+# Now import the required modules
+# flake8: noqa: E402
 import time
 import numpy as np
-from PIL import Image
 
 from rose.exec.process_video_stream import VideoProcessor
 
@@ -28,11 +30,11 @@ def example_basic_processing():
     processor = VideoProcessor()
 
     print("VideoProcessor initialized with default settings:")
-    print(f"- Depth model: DPT")
-    print(f"- Object detection: Faster R-CNN")
-    print(f"- Object confidence: 0.5")
-    print(f"- Colormap: viridis")
-    print(f"- Max objects for segmentation: 5")
+    print("- Depth model: DPT")
+    print("- Object detection: Faster R-CNN")
+    print("- Object confidence: 0.5")
+    print("- Colormap: viridis")
+    print("- Max objects for segmentation: 5")
 
     return processor
 
@@ -51,11 +53,11 @@ def example_custom_processing():
     )
 
     print("VideoProcessor initialized with custom settings:")
-    print(f"- Depth model: ZoeDepth")
-    print(f"- Object detection: SSD")
-    print(f"- Object confidence: 0.7")
-    print(f"- Colormap: plasma")
-    print(f"- Max objects for segmentation: 3")
+    print("- Depth model: ZoeDepth")
+    print("- Object detection: SSD")
+    print("- Object confidence: 0.7")
+    print("- Colormap: plasma")
+    print("- Max objects for segmentation: 3")
 
     return processor
 
@@ -80,7 +82,8 @@ def example_frame_processing(processor: VideoProcessor):
     print(f"Depth map shape: {result['depth_map'].shape if result['depth_map'] is not None else 'None'}")
     print(f"Number of detections: {len(result['detections'])}")
     print(f"Object prompts: {result['object_prompts']}")
-    print(f"Segmentation masks shape: {result['segmentation_masks'].shape if result['segmentation_masks'] is not None else 'None'}")
+    print(f"Segmentation masks shape: "
+          f"{result['segmentation_masks'].shape if result['segmentation_masks'] is not None else 'None'}")
 
     # Show detection details
     if result['detections']:
@@ -185,7 +188,7 @@ def example_integration():
 
     # Show final statistics
     stats = app.get_statistics()
-    print(f"\nFinal statistics:")
+    print("\nFinal statistics:")
     print(f"  Total frames processed: {stats['total_frames']}")
     print(f"  Total processing time: {stats['total_time']:.3f}s")
     print(f"  Average FPS: {stats['avg_fps']:.2f}")
@@ -201,7 +204,7 @@ def main():
         processor1 = example_basic_processing()
 
         # Example 2: Custom processing
-        processor2 = example_custom_processing()
+        example_custom_processing()
 
         # Example 3: Frame processing
         result = example_frame_processing(processor1)

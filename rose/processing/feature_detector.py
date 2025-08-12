@@ -3,6 +3,7 @@ import numpy as np
 from typing import List, Tuple, Optional
 from ..preprocessing.image_utils import ImagePreprocessor
 
+
 class FeatureDetector:
     """
     FeatureDetector uses the ORB algorithm to detect and compute features in an image.

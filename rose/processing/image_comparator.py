@@ -1,8 +1,6 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from typing import Tuple, List, Dict, Any, Union
-from PIL import Image
-import cv2
+from typing import List, Dict, Any, Union
 
 from .feature_extractor import FeatureExtractor
 from ..preprocessing.image_utils import ImagePreprocessor

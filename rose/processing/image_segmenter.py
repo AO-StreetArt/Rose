@@ -1,7 +1,7 @@
-import torch
-import numpy as np
-from PIL import Image
 from transformers import CLIPSegProcessor, CLIPSegForImageSegmentation
+import torch
+from PIL import Image
+
 
 class ImageSegmenter:
     """
