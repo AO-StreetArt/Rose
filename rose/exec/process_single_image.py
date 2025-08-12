@@ -17,13 +17,12 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-import os
+# flake8: noqa: E402
 import argparse
 from typing import Optional
 
 import numpy as np
 from PIL import Image
-import cv2
 
 from rose.processing.depth_estimator import DepthEstimator
 from rose.processing.edge_detector import EdgeDetector
@@ -34,21 +33,22 @@ from rose.preprocessing.image_utils import ImagePreprocessor
 from rose.postprocessing.image_creator import ImageCreator
 from rose.postprocessing.terminal_output import TerminalOutput
 
+
 def process_image(input_path: str, output_path: Optional[str] = None,
-                            use_colormap: bool = True,
-                            colormap: str = 'viridis',
-                            use_zoedepth: bool = False,
-                            use_edge_detection: bool = False,
-                            edge_method: str = 'canny',
-                            hed_prototxt: Optional[str] = None,
-                            hed_caffemodel: Optional[str] = None,
-                            use_feature_detection: bool = False,
-                            n_features: int = 500,
-                            use_segmentation: bool = False,
-                            segmentation_prompts: Optional[list] = None,
-                            use_object_detection: bool = False,
-                            object_model: str = 'faster_rcnn',
-                            object_confidence: float = 0.5) -> None:
+                 use_colormap: bool = True,
+                 colormap: str = 'viridis',
+                 use_zoedepth: bool = False,
+                 use_edge_detection: bool = False,
+                 edge_method: str = 'canny',
+                 hed_prototxt: Optional[str] = None,
+                 hed_caffemodel: Optional[str] = None,
+                 use_feature_detection: bool = False,
+                 n_features: int = 500,
+                 use_segmentation: bool = False,
+                 segmentation_prompts: Optional[list] = None,
+                 use_object_detection: bool = False,
+                 object_model: str = 'faster_rcnn',
+                 object_confidence: float = 0.5) -> None:
     """
     Estimate depth from an input image and save the result.
 
@@ -71,7 +71,7 @@ def process_image(input_path: str, output_path: Optional[str] = None,
         object_confidence (float): Minimum confidence threshold for object detection
     """
     # Validate input file
-    if not os.path.exists(input_path):
+    if not Path(input_path).exists():
         raise FileNotFoundError(f"Input image not found: {input_path}")
 
     # Generate output paths if not provided

@@ -4,7 +4,8 @@ from transformers import ViTImageProcessor, ViTForImageClassification
 from transformers import AutoImageProcessor, AutoModelForImageClassification
 import torch
 from PIL import Image
-from typing import Any, Dict
+from typing import Any
+
 
 class FeatureExtractor:
     """

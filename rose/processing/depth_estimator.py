@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 from typing import Optional
 
+
 class DepthEstimator:
     """
     Estimates depth information for elements in images, using monocular or stereo depth estimation models.
