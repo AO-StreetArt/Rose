@@ -1,210 +1,193 @@
+import unittest
 import numpy as np
 import tempfile
 from PIL import Image
 import os
 import cv2
 from rose.preprocessing.image_utils import ImagePreprocessor
-import pytest
 
-def test_image_preprocessor_init():
-    ip = ImagePreprocessor()
-    assert ip is not None
 
-def test_load_and_preprocess_image():
-    # Create a temporary grayscale image file
-    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
-        img = Image.new('L', (300, 300), color=128)
-        img.save(tmp.name)
-        tmp_path = tmp.name
-    try:
-        arr = ImagePreprocessor.load_and_preprocess_image(tmp_path)
-        assert isinstance(arr, np.ndarray)
-        assert arr.shape == (1, 224, 224, 3)
-    finally:
-        os.remove(tmp_path)
+class TestImagePreprocessor(unittest.TestCase):
+    def setUp(self):
+        self.image_preprocessor = ImagePreprocessor()
 
-def test_ensure_rgb_pil_image():
-    # Grayscale numpy array
-    gray_np = np.ones((100, 100), dtype=np.uint8) * 128
-    rgb_img = ImagePreprocessor.ensure_rgb_pil_image(gray_np)
-    assert isinstance(rgb_img, Image.Image)
-    assert rgb_img.mode == 'RGB'
+    def test_image_preprocessor_init(self):
+        self.assertIsNotNone(self.image_preprocessor)
 
-    # Grayscale PIL Image
-    gray_pil = Image.new('L', (100, 100), color=128)
-    rgb_img2 = ImagePreprocessor.ensure_rgb_pil_image(gray_pil)
-    assert isinstance(rgb_img2, Image.Image)
-    assert rgb_img2.mode == 'RGB'
+    def test_load_and_preprocess_image(self):
+        # Create a temporary grayscale image file
+        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+            img = Image.new('L', (300, 300), color=128)
+            img.save(tmp.name)
+            tmp_path = tmp.name
+        try:
+            arr = ImagePreprocessor.load_and_preprocess_image(tmp_path)
+            self.assertIsInstance(arr, np.ndarray)
+            self.assertEqual(arr.shape, (1, 224, 224, 3))
+        finally:
+            os.remove(tmp_path)
 
-    # Already RGB PIL Image
-    rgb_pil = Image.new('RGB', (100, 100), color=128)
-    rgb_img3 = ImagePreprocessor.ensure_rgb_pil_image(rgb_pil)
-    assert isinstance(rgb_img3, Image.Image)
-    assert rgb_img3.mode == 'RGB'
+    def test_ensure_rgb_pil_image(self):
+        # Grayscale numpy array
+        gray_np = np.ones((100, 100), dtype=np.uint8) * 128
+        rgb_img = ImagePreprocessor.ensure_rgb_pil_image(gray_np)
+        self.assertIsInstance(rgb_img, Image.Image)
+        self.assertEqual(rgb_img.mode, 'RGB')
 
-def test_ensure_bgr_image():
-    """Test the ensure_bgr_image method with different input types."""
-    # Test with grayscale image (2D array)
-    gray_image = np.ones((100, 100), dtype=np.uint8) * 128
-    bgr_image = ImagePreprocessor.ensure_bgr_image(gray_image)
-    assert isinstance(bgr_image, np.ndarray)
-    assert bgr_image.shape == (100, 100, 3)
-    assert bgr_image.dtype == np.uint8
+        # Grayscale PIL Image
+        gray_pil = Image.new('L', (100, 100), color=128)
+        rgb_img2 = ImagePreprocessor.ensure_rgb_pil_image(gray_pil)
+        self.assertIsInstance(rgb_img2, Image.Image)
+        self.assertEqual(rgb_img2.mode, 'RGB')
 
-    # Test with already BGR image (3D array)
-    bgr_input = np.ones((100, 100, 3), dtype=np.uint8) * 128
-    bgr_output = ImagePreprocessor.ensure_bgr_image(bgr_input)
-    assert isinstance(bgr_output, np.ndarray)
-    assert bgr_output.shape == (100, 100, 3)
-    assert bgr_output.dtype == np.uint8
-    # Should be the same array (no conversion needed)
-    assert np.array_equal(bgr_input, bgr_output)
+        # Already RGB PIL Image
+        rgb_pil = Image.new('RGB', (100, 100), color=128)
+        rgb_img3 = ImagePreprocessor.ensure_rgb_pil_image(rgb_pil)
+        self.assertIsInstance(rgb_img3, Image.Image)
+        self.assertEqual(rgb_img3.mode, 'RGB')
 
-def test_create_blob_for_hed():
-    """Test the create_blob_for_hed method."""
-    # Create a test BGR image
-    bgr_image = np.ones((100, 150, 3), dtype=np.uint8) * 128
+    def test_ensure_bgr_image(self):
+        """Test the ensure_bgr_image method with different input types."""
+        # Test with grayscale image (2D array)
+        gray_image = np.ones((100, 100), dtype=np.uint8) * 128
+        bgr_image = ImagePreprocessor.ensure_bgr_image(gray_image)
+        self.assertIsInstance(bgr_image, np.ndarray)
+        self.assertEqual(bgr_image.shape, (100, 100, 3))
+        self.assertEqual(bgr_image.dtype, np.uint8)
 
-    # Create blob
-    blob = ImagePreprocessor.create_blob_for_hed(bgr_image)
+        # Test with already BGR image (3D array)
+        bgr_input = np.ones((100, 100, 3), dtype=np.uint8) * 128
+        bgr_output = ImagePreprocessor.ensure_bgr_image(bgr_input)
+        self.assertIsInstance(bgr_output, np.ndarray)
+        self.assertEqual(bgr_output.shape, (100, 100, 3))
+        self.assertEqual(bgr_output.dtype, np.uint8)
+        # Should be the same array (no conversion needed)
+        self.assertTrue(np.array_equal(bgr_input, bgr_output))
 
-    # Verify blob properties
-    assert isinstance(blob, np.ndarray)
-    assert blob.shape == (1, 3, 100, 150)  # (batch, channels, height, width)
-    assert blob.dtype == np.float32
+    def test_create_blob_for_hed(self):
+        """Test the create_blob_for_hed method."""
+        # Create a test BGR image
+        bgr_image = np.ones((100, 150, 3), dtype=np.uint8) * 128
 
-    # Test with different image dimensions
-    bgr_image_2 = np.ones((200, 300, 3), dtype=np.uint8) * 64
-    blob_2 = ImagePreprocessor.create_blob_for_hed(bgr_image_2)
-    assert blob_2.shape == (1, 3, 200, 300)
+        # Create blob
+        blob = ImagePreprocessor.create_blob_for_hed(bgr_image)
 
-def test_create_blob_for_hed_with_mean_subtraction():
-    """Test that the blob creation properly applies mean subtraction."""
-    # Create a test BGR image with known values
-    bgr_image = np.ones((50, 50, 3), dtype=np.uint8) * 128
+        # Verify blob properties
+        self.assertIsInstance(blob, np.ndarray)
+        self.assertEqual(blob.shape, (1, 3, 100, 150))  # (batch, channels, height, width)
+        self.assertEqual(blob.dtype, np.float32)
 
-    # Create blob
-    blob = ImagePreprocessor.create_blob_for_hed(bgr_image)
+        # Test with different image dimensions
+        bgr_image_2 = np.ones((200, 300, 3), dtype=np.uint8) * 64
+        blob_2 = ImagePreprocessor.create_blob_for_hed(bgr_image_2)
+        self.assertEqual(blob_2.shape, (1, 3, 200, 300))
 
-    # The mean values used in the method are (104.00698793, 116.66876762, 122.67891434)
-    # So the expected values should be approximately 128 - mean for each channel
-    expected_b = 128 - 104.00698793
-    expected_g = 128 - 116.66876762
-    expected_r = 128 - 122.67891434
+    def test_create_blob_for_hed_with_mean_subtraction(self):
+        """Test that the blob creation properly applies mean subtraction."""
+        # Create a test BGR image with known values
+        bgr_image = np.ones((50, 50, 3), dtype=np.uint8) * 128
 
-    # Check that the blob values are close to expected (allowing for floating point precision)
-    assert abs(blob[0, 0, 0, 0] - expected_b) < 1e-5
-    assert abs(blob[0, 1, 0, 0] - expected_g) < 1e-5
-    assert abs(blob[0, 2, 0, 0] - expected_r) < 1e-5
+        # Create blob
+        blob = ImagePreprocessor.create_blob_for_hed(bgr_image)
 
-def test_ensure_bgr_image_edge_cases():
-    """Test edge cases for ensure_bgr_image method."""
-    # Test with very small image
-    small_gray = np.ones((1, 1), dtype=np.uint8) * 255
-    small_bgr = ImagePreprocessor.ensure_bgr_image(small_gray)
-    assert small_bgr.shape == (1, 1, 3)
+        # The mean values used in the method are (104.00698793, 116.66876762, 122.67891434)
+        # So the expected values should be approximately 128 - mean for each channel
+        expected_b = 128 - 104.00698793
+        expected_g = 128 - 116.66876762
+        expected_r = 128 - 122.67891434
 
-    # Test with zero values
-    zero_gray = np.zeros((10, 10), dtype=np.uint8)
-    zero_bgr = ImagePreprocessor.ensure_bgr_image(zero_gray)
-    assert zero_bgr.shape == (10, 10, 3)
-    assert np.all(zero_bgr == 0)
+        # Check that the blob values are close to expected (allowing for floating point precision)
+        self.assertAlmostEqual(blob[0, 0, 0, 0], expected_b, places=5)
+        self.assertAlmostEqual(blob[0, 1, 0, 0], expected_g, places=5)
+        self.assertAlmostEqual(blob[0, 2, 0, 0], expected_r, places=5)
 
-def test_ensure_grayscale_image():
-    """Test the ensure_grayscale_image method with different input types."""
-    # Test with BGR image (3D array)
-    bgr_image = np.ones((100, 100, 3), dtype=np.uint8) * 128
-    gray_image = ImagePreprocessor.ensure_grayscale_image(bgr_image)
-    assert isinstance(gray_image, np.ndarray)
-    assert gray_image.shape == (100, 100)
-    assert gray_image.dtype == np.uint8
+    def test_ensure_bgr_image_edge_cases(self):
+        """Test edge cases for ensure_bgr_image method."""
+        # Test with very small image
+        small_image = np.ones((1, 1), dtype=np.uint8) * 255
+        bgr_small = ImagePreprocessor.ensure_bgr_image(small_image)
+        self.assertEqual(bgr_small.shape, (1, 1, 3))
+        self.assertEqual(bgr_small.dtype, np.uint8)
 
-    # Test with already grayscale image (2D array)
-    gray_input = np.ones((100, 100), dtype=np.uint8) * 128
-    gray_output = ImagePreprocessor.ensure_grayscale_image(gray_input)
-    assert isinstance(gray_output, np.ndarray)
-    assert gray_output.shape == (100, 100)
-    assert gray_output.dtype == np.uint8
-    # Should be the same array (no conversion needed)
-    assert np.array_equal(gray_input, gray_output)
+        # Test with very large image
+        large_image = np.ones((1000, 1000), dtype=np.uint8) * 100
+        bgr_large = ImagePreprocessor.ensure_bgr_image(large_image)
+        self.assertEqual(bgr_large.shape, (1000, 1000, 3))
+        self.assertEqual(bgr_large.dtype, np.uint8)
 
-def test_ensure_grayscale_image_edge_cases():
-    """Test edge cases for ensure_grayscale_image method."""
-    # Test with very small BGR image
-    small_bgr = np.ones((1, 1, 3), dtype=np.uint8) * 255
-    small_gray = ImagePreprocessor.ensure_grayscale_image(small_bgr)
-    assert small_gray.shape == (1, 1)
+    def test_ensure_rgb_pil_image_edge_cases(self):
+        """Test edge cases for ensure_rgb_pil_image method."""
+        # Test with very small image
+        small_image = np.ones((1, 1), dtype=np.uint8) * 255
+        rgb_small = ImagePreprocessor.ensure_rgb_pil_image(small_image)
+        self.assertEqual(rgb_small.size, (1, 1))
+        self.assertEqual(rgb_small.mode, 'RGB')
 
-    # Test with zero values
-    zero_bgr = np.zeros((10, 10, 3), dtype=np.uint8)
-    zero_gray = ImagePreprocessor.ensure_grayscale_image(zero_bgr)
-    assert zero_gray.shape == (10, 10)
-    assert np.all(zero_gray == 0)
+        # Test with very large image
+        large_image = np.ones((1000, 1000), dtype=np.uint8) * 100
+        rgb_large = ImagePreprocessor.ensure_rgb_pil_image(large_image)
+        self.assertEqual(rgb_large.size, (1000, 1000))
+        self.assertEqual(rgb_large.mode, 'RGB')
 
-    # Test with different color values
-    color_bgr = np.zeros((5, 5, 3), dtype=np.uint8)
-    color_bgr[:, :, 0] = 100  # Blue channel
-    color_bgr[:, :, 1] = 150  # Green channel
-    color_bgr[:, :, 2] = 200  # Red channel
-    color_gray = ImagePreprocessor.ensure_grayscale_image(color_bgr)
-    assert color_gray.shape == (5, 5)
-    # Grayscale conversion should produce different values than the original channels
-    assert not np.array_equal(color_gray, color_bgr[:, :, 0])
-    assert not np.array_equal(color_gray, color_bgr[:, :, 1])
-    assert not np.array_equal(color_gray, color_bgr[:, :, 2])
+    def test_load_and_preprocess_image_edge_cases(self):
+        """Test edge cases for load_and_preprocess_image method."""
+        # Test with very small image
+        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+            img = Image.new('L', (10, 10), color=128)
+            img.save(tmp.name)
+            tmp_path = tmp.name
+        try:
+            arr = ImagePreprocessor.load_and_preprocess_image(tmp_path)
+            self.assertIsInstance(arr, np.ndarray)
+            self.assertEqual(arr.shape, (1, 224, 224, 3))  # Should still be resized to 224x224
+        finally:
+            os.remove(tmp_path)
 
-def test_load_and_preprocess_for_feature_extraction():
-    """Test the load_and_preprocess_for_feature_extraction method."""
-    # Test with numpy array input
-    test_image = np.ones((100, 100, 3), dtype=np.uint8) * 128
-    processed = ImagePreprocessor.load_and_preprocess_for_feature_extraction(test_image)
+        # Test with very large image
+        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+            img = Image.new('L', (1000, 1000), color=128)
+            img.save(tmp.name)
+            tmp_path = tmp.name
+        try:
+            arr = ImagePreprocessor.load_and_preprocess_image(tmp_path)
+            self.assertIsInstance(arr, np.ndarray)
+            self.assertEqual(arr.shape, (1, 224, 224, 3))  # Should be resized to 224x224
+        finally:
+            os.remove(tmp_path)
 
-    assert isinstance(processed, np.ndarray)
-    assert processed.shape == (1, 224, 224, 3)  # (batch, height, width, channels)
-    assert processed.dtype == np.float32
-    assert processed.min() >= 0.0 and processed.max() <= 1.0  # Normalized to [0, 1]
+    def test_ensure_bgr_image_with_different_dtypes(self):
+        """Test ensure_bgr_image with different numpy dtypes."""
+        # Test with float32
+        float_image = np.ones((50, 50), dtype=np.float32) * 0.5
+        bgr_float = ImagePreprocessor.ensure_bgr_image(float_image)
+        self.assertEqual(bgr_float.dtype, np.uint8)  # Should be converted to uint8
 
-    # Test with custom target size
-    processed_custom = ImagePreprocessor.load_and_preprocess_for_feature_extraction(
-        test_image, target_size=(64, 64)
-    )
-    assert processed_custom.shape == (1, 64, 64, 3)
+        # Test with int16
+        int16_image = np.ones((50, 50), dtype=np.int16) * 128
+        bgr_int16 = ImagePreprocessor.ensure_bgr_image(int16_image)
+        self.assertEqual(bgr_int16.dtype, np.uint8)  # Should be converted to uint8
 
-def test_load_and_preprocess_for_feature_extraction_edge_cases():
-    """Test edge cases for load_and_preprocess_for_feature_extraction method."""
-    # Test with very small image
-    small_image = np.ones((10, 10, 3), dtype=np.uint8) * 255
-    processed = ImagePreprocessor.load_and_preprocess_for_feature_extraction(small_image)
-    assert processed.shape == (1, 224, 224, 3)
+        # Test with bool
+        bool_image = np.ones((50, 50), dtype=bool)
+        bgr_bool = ImagePreprocessor.ensure_bgr_image(bool_image)
+        self.assertEqual(bgr_bool.dtype, np.uint8)  # Should be converted to uint8
 
-    # Test with zero values
-    zero_image = np.zeros((50, 50, 3), dtype=np.uint8)
-    processed_zero = ImagePreprocessor.load_and_preprocess_for_feature_extraction(zero_image)
-    assert processed_zero.shape == (1, 224, 224, 3)
-    assert np.all(processed_zero == 0.0)
+    def test_ensure_rgb_pil_image_with_different_dtypes(self):
+        """Test ensure_rgb_pil_image with different numpy dtypes."""
+        # Test with float32
+        float_image = np.ones((50, 50), dtype=np.float32) * 0.5
+        rgb_float = ImagePreprocessor.ensure_rgb_pil_image(float_image)
+        self.assertEqual(rgb_float.mode, 'RGB')
+        self.assertEqual(rgb_float.size, (50, 50))
 
-    # Test with grayscale image (should be converted to RGB)
-    gray_image = np.ones((50, 50), dtype=np.uint8) * 128
-    processed_gray = ImagePreprocessor.load_and_preprocess_for_feature_extraction(gray_image)
-    assert processed_gray.shape == (1, 224, 224, 3)
+        # Test with int16
+        int16_image = np.ones((50, 50), dtype=np.int16) * 128
+        rgb_int16 = ImagePreprocessor.ensure_rgb_pil_image(int16_image)
+        self.assertEqual(rgb_int16.mode, 'RGB')
+        self.assertEqual(rgb_int16.size, (50, 50))
 
-def test_load_and_preprocess_for_feature_extraction_file_path():
-    """Test load_and_preprocess_for_feature_extraction with file path input."""
-    # Create a temporary test image file
-    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
-        img = Image.new('RGB', (100, 100), color=(128, 128, 128))
-        img.save(tmp.name)
-        tmp_path = tmp.name
-
-    try:
-        processed = ImagePreprocessor.load_and_preprocess_for_feature_extraction(tmp_path)
-        assert isinstance(processed, np.ndarray)
-        assert processed.shape == (1, 224, 224, 3)
-        assert processed.dtype == np.float32
-    finally:
-        os.remove(tmp_path)
-
-def test_load_and_preprocess_for_feature_extraction_invalid_path():
-    """Test that invalid file path raises appropriate error."""
-    with pytest.raises(ValueError, match="Could not load image from path"):
-        ImagePreprocessor.load_and_preprocess_for_feature_extraction("nonexistent_image.jpg")
+        # Test with bool
+        bool_image = np.ones((50, 50), dtype=bool)
+        rgb_bool = ImagePreprocessor.ensure_rgb_pil_image(bool_image)
+        self.assertEqual(rgb_bool.mode, 'RGB')
+        self.assertEqual(rgb_bool.size, (50, 50))

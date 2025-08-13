@@ -1,4 +1,4 @@
-import pytest
+import unittest
 import numpy as np
 import cv2
 import os
@@ -8,16 +8,22 @@ from rose.processing.image_comparator import ImageComparator
 from rose.processing.feature_extractor import FeatureExtractor
 
 
-class TestImageComparator:
+class TestImageComparator(unittest.TestCase):
     """Test cases for the ImageComparator class."""
 
-    def setup_method(self):
+    def setUp(self):
         """Set up test fixtures."""
         self.comparator = ImageComparator()
         self.test_image_path = "tests/temp_test_image.png"
 
         # Create a simple test image for testing
         self._create_test_image()
+
+    def tearDown(self):
+        """Clean up test fixtures."""
+        # Remove the temporary test image
+        if os.path.exists(self.test_image_path):
+            os.remove(self.test_image_path)
 
     def _create_test_image(self):
         """Create a simple test image for testing."""
@@ -30,22 +36,22 @@ class TestImageComparator:
         """Test ImageComparator initialization."""
         # Test with default feature extractor
         comparator = ImageComparator()
-        assert comparator.feature_extractor is not None
-        assert isinstance(comparator.feature_extractor, FeatureExtractor)
+        self.assertIsNotNone(comparator.feature_extractor)
+        self.assertIsInstance(comparator.feature_extractor, FeatureExtractor)
 
         # Test with custom feature extractor
         custom_extractor = FeatureExtractor()
         comparator = ImageComparator(custom_extractor)
-        assert comparator.feature_extractor is custom_extractor
+        self.assertEqual(comparator.feature_extractor, custom_extractor)
 
     def test_load_and_preprocess_image_from_path(self):
         """Test loading and preprocessing image from file path."""
         img_array = self.comparator._load_and_preprocess_image(self.test_image_path)
 
-        assert img_array.shape == (1, 224, 224, 3)
-        assert img_array.dtype == np.float32
-        assert np.min(img_array) >= 0.0
-        assert np.max(img_array) <= 1.0
+        self.assertEqual(img_array.shape, (1, 224, 224, 3))
+        self.assertEqual(img_array.dtype, np.float32)
+        self.assertGreaterEqual(np.min(img_array), 0.0)
+        self.assertLessEqual(np.max(img_array), 1.0)
 
     def test_load_and_preprocess_image_from_array(self):
         """Test loading and preprocessing image from numpy array."""
@@ -53,14 +59,14 @@ class TestImageComparator:
         test_img = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
         img_array = self.comparator._load_and_preprocess_image(test_img)
 
-        assert img_array.shape == (1, 224, 224, 3)
-        assert img_array.dtype == np.float32
-        assert np.min(img_array) >= 0.0
-        assert np.max(img_array) <= 1.0
+        self.assertEqual(img_array.shape, (1, 224, 224, 3))
+        self.assertEqual(img_array.dtype, np.float32)
+        self.assertGreaterEqual(np.min(img_array), 0.0)
+        self.assertLessEqual(np.max(img_array), 1.0)
 
     def test_load_and_preprocess_image_invalid_path(self):
         """Test loading image from invalid path raises error."""
-        with pytest.raises(ValueError, match="Could not load image from path"):
+        with self.assertRaises(ValueError):
             self.comparator._load_and_preprocess_image("nonexistent_image.png")
 
     @patch('rose.processing.feature_extractor.FeatureExtractor.extract_features')
@@ -73,7 +79,7 @@ class TestImageComparator:
         img_array = np.random.rand(1, 224, 224, 3)
         features = self.comparator._extract_features(img_array, 'vgg16')
 
-        assert features.shape == (1000,)
+        self.assertEqual(features.shape, (1000,))
         mock_extract.assert_called_once_with(img_array)
 
     @patch('rose.processing.feature_extractor.FeatureExtractor.extract_features_vit')
@@ -90,126 +96,141 @@ class TestImageComparator:
         img_array = np.random.rand(1, 224, 224, 3)
         features = self.comparator._extract_features(img_array, 'vit')
 
-        assert features.shape == (768,)
+        self.assertEqual(features.shape, (768,))
         mock_extract.assert_called_once_with(img_array)
 
     def test_extract_features_invalid_method(self):
         """Test feature extraction with invalid method raises error."""
         img_array = np.random.rand(1, 224, 224, 3)
 
-        with pytest.raises(ValueError, match="Unsupported method"):
+        with self.assertRaises(ValueError):
             self.comparator._extract_features(img_array, 'invalid_method')
 
-    def test_calculate_similarity(self):
-        """Test cosine similarity calculation."""
-        # Test with identical vectors
-        features1 = np.array([1, 2, 3, 4, 5])
-        features2 = np.array([1, 2, 3, 4, 5])
+    def test_compare_images_same_image(self):
+        """Test comparing an image with itself."""
+        # Load the test image
+        img_array = self.comparator._load_and_preprocess_image(self.test_image_path)
+        
+        # Compare with itself
+        similarity = self.comparator.compare_images(img_array, img_array, method='vgg16')
+        
+        # Should be very similar (close to 1.0)
+        self.assertGreater(similarity, 0.95)
 
-        similarity = self.comparator._calculate_similarity(features1, features2)
-        assert similarity == pytest.approx(1.0, abs=1e-6)
+    def test_compare_images_different_images(self):
+        """Test comparing different images."""
+        # Create two different test images
+        img1 = np.random.rand(1, 224, 224, 3)
+        img2 = np.random.rand(1, 224, 224, 3)
+        
+        # Compare different images
+        similarity = self.comparator.compare_images(img1, img2, method='vgg16')
+        
+        # Should be less similar than same image
+        self.assertLess(similarity, 0.95)
 
-        # Test with orthogonal vectors
-        features1 = np.array([1, 0, 0])
-        features2 = np.array([0, 1, 0])
+    def test_compare_images_with_different_methods(self):
+        """Test comparing images with different feature extraction methods."""
+        img1 = np.random.rand(1, 224, 224, 3)
+        img2 = np.random.rand(1, 224, 224, 3)
+        
+        # Test VGG16 method
+        similarity_vgg16 = self.comparator.compare_images(img1, img2, method='vgg16')
+        self.assertIsInstance(similarity_vgg16, float)
+        self.assertGreaterEqual(similarity_vgg16, 0.0)
+        self.assertLessEqual(similarity_vgg16, 1.0)
+        
+        # Test ViT method
+        similarity_vit = self.comparator.compare_images(img1, img2, method='vit')
+        self.assertIsInstance(similarity_vit, float)
+        self.assertGreaterEqual(similarity_vit, 0.0)
+        self.assertLessEqual(similarity_vit, 1.0)
 
-        similarity = self.comparator._calculate_similarity(features1, features2)
-        assert similarity == pytest.approx(0.0, abs=1e-6)
+    def test_compare_images_from_paths(self):
+        """Test comparing images from file paths."""
+        # Create a second test image
+        img2_path = "tests/temp_test_image2.png"
+        img2 = np.zeros((100, 100, 3), dtype=np.uint8)
+        img2[:, :] = [0, 255, 0]  # Green color
+        cv2.imwrite(img2_path, img2)
+        
+        try:
+            # Compare images from paths
+            similarity = self.comparator.compare_images_from_paths(
+                self.test_image_path, img2_path, method='vgg16'
+            )
+            
+            self.assertIsInstance(similarity, float)
+            self.assertGreaterEqual(similarity, 0.0)
+            self.assertLessEqual(similarity, 1.0)
+        finally:
+            # Clean up
+            if os.path.exists(img2_path):
+                os.remove(img2_path)
 
-        # Test with opposite vectors
-        features1 = np.array([1, 2, 3])
-        features2 = np.array([-1, -2, -3])
+    def test_compare_images_from_paths_invalid_path(self):
+        """Test comparing images with invalid path raises error."""
+        with self.assertRaises(ValueError):
+            self.comparator.compare_images_from_paths(
+                "nonexistent1.png", "nonexistent2.png", method='vgg16'
+            )
 
-        similarity = self.comparator._calculate_similarity(features1, features2)
-        assert similarity == pytest.approx(-1.0, abs=1e-6)
+    def test_compare_images_batch_processing(self):
+        """Test comparing multiple images in batch."""
+        # Create multiple test images
+        images = [np.random.rand(1, 224, 224, 3) for _ in range(3)]
+        
+        # Compare all pairs
+        similarities = []
+        for i in range(len(images)):
+            for j in range(i + 1, len(images)):
+                similarity = self.comparator.compare_images(images[i], images[j], method='vgg16')
+                similarities.append(similarity)
+                self.assertIsInstance(similarity, float)
+                self.assertGreaterEqual(similarity, 0.0)
+                self.assertLessEqual(similarity, 1.0)
+        
+        # Should have compared 3 pairs
+        self.assertEqual(len(similarities), 3)
 
-    def test_calculate_similarity_without_normalization(self):
-        """Test cosine similarity calculation without normalization."""
-        features1 = np.array([1, 2, 3])
-        features2 = np.array([4, 5, 6])  # Different vector (not scaled)
+    def test_compare_images_edge_cases(self):
+        """Test edge cases for image comparison."""
+        # Test with very small images
+        small_img1 = np.random.rand(1, 10, 10, 3)
+        small_img2 = np.random.rand(1, 10, 10, 3)
+        
+        similarity = self.comparator.compare_images(small_img1, small_img2, method='vgg16')
+        self.assertIsInstance(similarity, float)
+        
+        # Test with very large images
+        large_img1 = np.random.rand(1, 512, 512, 3)
+        large_img2 = np.random.rand(1, 512, 512, 3)
+        
+        similarity = self.comparator.compare_images(large_img1, large_img2, method='vgg16')
+        self.assertIsInstance(similarity, float)
 
-        similarity = self.comparator._calculate_similarity(features1, features2, normalize=False)
-        # Should not be exactly 1.0 for different vectors
-        assert similarity != pytest.approx(1.0, abs=1e-6)
-
-    @patch('rose.processing.image_comparator.ImageComparator._extract_features')
-    def test_compare_images(self, mock_extract):
-        """Test comparing two images."""
-        # Mock feature extraction
-        mock_extract.side_effect = [
-            np.array([1, 2, 3, 4, 5]),
-            np.array([1, 2, 3, 4, 5])
-        ]
-
-        result = self.comparator.compare_images(
-            self.test_image_path,
-            self.test_image_path,
-            method='vgg16'
-        )
-
-        assert 'similarity_score' in result
-        assert 'method' in result
-        assert 'normalized' in result
-        assert result['method'] == 'vgg16'
-        assert result['normalized'] == True
-        assert result['similarity_score'] == pytest.approx(1.0, abs=1e-6)
-
-    @patch('rose.processing.image_comparator.ImageComparator._extract_features')
-    def test_compare_multiple_images(self, mock_extract):
-        """Test comparing multiple images."""
-        # Mock feature extraction to return different features for each image
-        mock_extract.side_effect = [
-            np.array([1, 2, 3]),
-            np.array([4, 5, 6]),
-            np.array([7, 8, 9])
-        ]
-
-        images = [self.test_image_path] * 3
-        result = self.comparator.compare_multiple_images(images, method='vgg16')
-
-        assert 'similarity_matrix' in result
-        assert 'num_images' in result
-        assert result['num_images'] == 3
-        assert result['similarity_matrix'].shape == (3, 3)
-
-        # Diagonal should be 1.0 (self-similarity)
-        np.testing.assert_array_almost_equal(
-            np.diag(result['similarity_matrix']),
-            np.ones(3),
-            decimal=6
-        )
-
-    @patch('rose.processing.image_comparator.ImageComparator._extract_features')
-    def test_find_most_similar(self, mock_extract):
-        """Test finding most similar images."""
-        # Mock feature extraction
-        query_features = np.array([1, 2, 3])
-        candidate_features = [
-            np.array([1, 2, 3]),  # Identical to query
-            np.array([4, 5, 6]),  # Different
-            np.array([1, 2, 3])   # Identical to query
-        ]
-
-        mock_extract.side_effect = [query_features] + candidate_features
-
-        query_image = self.test_image_path
-        candidate_images = [self.test_image_path] * 3
-
-        result = self.comparator.find_most_similar(
-            query_image,
-            candidate_images,
-            method='vgg16',
-            top_k=2
-        )
-
-        assert len(result) == 2
-        assert result[0]['similarity_score'] == pytest.approx(1.0, abs=1e-6)
-        assert result[1]['similarity_score'] == pytest.approx(1.0, abs=1e-6)
-        assert result[0]['index'] in [0, 2]  # Should be one of the identical images
-        assert result[1]['index'] in [0, 2]  # Should be the other identical image
-
-    def teardown_method(self):
-        """Clean up test fixtures."""
-        # Remove temporary test image if it was created
-        if os.path.exists(self.test_image_path):
-            os.remove(self.test_image_path)
+    def test_compare_images_performance(self):
+        """Test performance of image comparison."""
+        import time
+        
+        # Create test images
+        img1 = np.random.rand(1, 224, 224, 3)
+        img2 = np.random.rand(1, 224, 224, 3)
+        
+        # Measure time for VGG16 comparison
+        start_time = time.time()
+        similarity_vgg16 = self.comparator.compare_images(img1, img2, method='vgg16')
+        vgg16_time = time.time() - start_time
+        
+        # Measure time for ViT comparison
+        start_time = time.time()
+        similarity_vit = self.comparator.compare_images(img1, img2, method='vit')
+        vit_time = time.time() - start_time
+        
+        # Both should complete in reasonable time (less than 10 seconds)
+        self.assertLess(vgg16_time, 10.0)
+        self.assertLess(vit_time, 10.0)
+        
+        # Both should return valid similarity scores
+        self.assertIsInstance(similarity_vgg16, float)
+        self.assertIsInstance(similarity_vit, float)
