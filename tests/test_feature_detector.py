@@ -4,6 +4,7 @@ import os
 import pytest
 from rose.processing.feature_detector import FeatureDetector
 
+
 def test_orb_feature_detection_on_synthetic_image():
     """Test ORB feature detection on a synthetic test image."""
     # Create a synthetic test image with clear features
@@ -20,6 +21,7 @@ def test_orb_feature_detection_on_synthetic_image():
     assert len(keypoints) > 0, "No features detected in the test image."
     assert descriptors is not None, "Descriptors should not be None."
 
+
 def test_feature_detection_with_preprocessing_methods():
     """Test that feature detection works correctly with the new preprocessing methods."""
     # Create a synthetic color test image
@@ -35,6 +37,7 @@ def test_feature_detection_with_preprocessing_methods():
     assert keypoints is not None, "Keypoints should not be None."
     assert len(keypoints) > 0, "No features detected in the color test image."
     assert descriptors is not None, "Descriptors should not be None."
+
 
 def test_feature_detection_grayscale_vs_color():
     """Test that feature detection produces similar results for grayscale and color inputs."""
@@ -65,6 +68,7 @@ def test_feature_detection_grayscale_vs_color():
 
     # Should have similar number of keypoints (allowing for some variation)
     assert abs(len(gray_keypoints) - len(color_keypoints)) <= 5
+
 
 def test_orb_feature_detection_on_square_image():
     """Test ORB feature detection on the square test image if it exists."""

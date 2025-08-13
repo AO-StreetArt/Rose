@@ -23,10 +23,10 @@ class ImageComparator:
         self.feature_extractor = feature_extractor or FeatureExtractor()
 
     def compare_images(self,
-                      img1: Union[np.ndarray, str],
-                      img2: Union[np.ndarray, str],
-                      method: str = 'vgg16',
-                      normalize: bool = True) -> Dict[str, Any]:
+                       img1: Union[np.ndarray, str],
+                       img2: Union[np.ndarray, str],
+                       method: str = 'vgg16',
+                       normalize: bool = True) -> Dict[str, Any]:
         """
         Compare two images using cosine similarity on extracted features.
 
@@ -59,9 +59,9 @@ class ImageComparator:
         }
 
     def compare_multiple_images(self,
-                              images: List[Union[np.ndarray, str]],
-                              method: str = 'vgg16',
-                              normalize: bool = True) -> Dict[str, Any]:
+                                images: List[Union[np.ndarray, str]],
+                                method: str = 'vgg16',
+                                normalize: bool = True) -> Dict[str, Any]:
         """
         Compare multiple images pairwise using cosine similarity.
 
@@ -102,11 +102,11 @@ class ImageComparator:
         }
 
     def find_most_similar(self,
-                         query_image: Union[np.ndarray, str],
-                         candidate_images: List[Union[np.ndarray, str]],
-                         method: str = 'vgg16',
-                         normalize: bool = True,
-                         top_k: int = 5) -> List[Dict[str, Any]]:
+                          query_image: Union[np.ndarray, str],
+                          candidate_images: List[Union[np.ndarray, str]],
+                          method: str = 'vgg16',
+                          normalize: bool = True,
+                          top_k: int = 5) -> List[Dict[str, Any]]:
         """
         Find the most similar images to a query image.
 
@@ -186,9 +186,9 @@ class ImageComparator:
             raise ValueError(f"Unsupported method: {method}. Use 'vgg16', 'vit', or 'dinov2'")
 
     def _calculate_similarity(self,
-                            features1: np.ndarray,
-                            features2: np.ndarray,
-                            normalize: bool = True) -> float:
+                              features1: np.ndarray,
+                              features2: np.ndarray,
+                              normalize: bool = True) -> float:
         """
         Calculate cosine similarity between two feature vectors.
 

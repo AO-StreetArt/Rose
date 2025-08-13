@@ -4,9 +4,11 @@ from PIL import Image
 from rose.processing.depth_estimator import DepthEstimator
 from rose.preprocessing.image_utils import ImagePreprocessor
 
+
 def test_depth_estimator_init():
     de = DepthEstimator()
     assert de is not None
+
 
 def test_estimate_depth_on_square_image():
     img_path = os.path.join(os.path.dirname(__file__), 'squareTestImage.png')
@@ -24,6 +26,7 @@ def test_estimate_depth_on_square_image():
     depth_img = Image.fromarray(norm_depth)
     save_path = os.path.join(os.path.dirname(__file__), 'depth_map_squareTestImage.png')
     depth_img.save(save_path)
+
 
 def test_estimate_depth_zoedepth_on_square_image():
     img_path = os.path.join(os.path.dirname(__file__), 'squareTestImage.png')

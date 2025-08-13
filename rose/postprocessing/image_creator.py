@@ -2,7 +2,7 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 import cv2
-from typing import Optional, List
+from typing import List
 
 
 class ImageCreator:
@@ -42,7 +42,7 @@ class ImageCreator:
 
     @staticmethod
     def save_depth_map_as_image(depth_map: np.ndarray, output_path: str,
-                               colormap: str = 'viridis') -> None:
+                                colormap: str = 'viridis') -> None:
         """
         Save depth map as an image with optional colormap.
 
@@ -211,7 +211,7 @@ class ImageCreator:
 
     @staticmethod
     def create_depth_visualization(depth_map: np.ndarray, original_image: np.ndarray,
-                                  colormap: str = 'viridis') -> np.ndarray:
+                                   colormap: str = 'viridis') -> np.ndarray:
         """
         Create depth visualization as a numpy array for real-time display.
 
@@ -243,13 +243,13 @@ class ImageCreator:
         # Resize to match original image dimensions
         if colored_depth_bgr.shape[:2] != original_image.shape[:2]:
             colored_depth_bgr = cv2.resize(colored_depth_bgr,
-                                          (original_image.shape[1], original_image.shape[0]))
+                                           (original_image.shape[1], original_image.shape[0]))
 
         return colored_depth_bgr
 
     @staticmethod
     def create_segmentation_visualization(original_image: np.ndarray, masks: np.ndarray,
-                                        prompts: List[str]) -> np.ndarray:
+                                          prompts: List[str]) -> np.ndarray:
         """
         Create segmentation visualization as a numpy array for real-time display.
 
