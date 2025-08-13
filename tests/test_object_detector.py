@@ -78,7 +78,7 @@ def test_detect_objects_on_square_image():
         except Exception as e:
             font = None
             print('Failed to load font')
-            print()
+            print(e)
 
         for i, detection in enumerate(detections):
             bbox = detection['bbox']
