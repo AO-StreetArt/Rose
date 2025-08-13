@@ -466,11 +466,6 @@ def process_video_stream(camera_id: int = 0,
 
             # Frame skipping logic - only process every Nth frame
             if frame_count % frame_skip != 0:
-                # Show the frame without processing
-                cv2.imshow('Original + Detections', frame)
-                cv2.imshow('Depth Map', frame)
-                cv2.imshow('Segmentation', frame)
-
                 # Handle key presses for non-processed frames
                 key = cv2.waitKey(1) & 0xFF
                 if key == ord('q'):

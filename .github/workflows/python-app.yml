@@ -28,6 +28,20 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: actions-setup-redis
+      # Startup a Redis server to test with
+      uses: shogo82148/actions-setup-redis@v1.42.0
+      with:
+        # the distribution of redis
+        distribution: redis
+        # the version of redis
+        redis-version: latest
+        # the port of redis-sever
+        redis-port: 6379
+        # the tls port of redis-sever
+        redis-tls-port: 0
+        # enable to auto-start redis-sever
+        auto-start: true
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
