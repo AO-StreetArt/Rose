@@ -6,6 +6,7 @@ from rose.preprocessing.image_utils import ImagePreprocessor
 import os
 from PIL import Image, ImageDraw, ImageFont
 
+
 def test_object_detector_init():
     """Test object detector initialization."""
     od = ObjectDetector()
@@ -13,16 +14,19 @@ def test_object_detector_init():
     assert od.model_type == "faster_rcnn"
     assert od.confidence_threshold == 0.5
 
+
 def test_object_detector_init_with_params():
     """Test object detector initialization with custom parameters."""
     od = ObjectDetector(model_type="faster_rcnn", confidence_threshold=0.7)
     assert od.model_type == "faster_rcnn"
     assert od.confidence_threshold == 0.7
 
+
 def test_object_detector_invalid_model_type():
     """Test object detector initialization with invalid model type."""
     with pytest.raises(ValueError, match="Unsupported model type"):
         ObjectDetector(model_type="invalid_model")
+
 
 def test_detect_objects_mocked():
     """Test object detection with mocked model."""
@@ -46,6 +50,7 @@ def test_detect_objects_mocked():
         assert isinstance(detection['class_name'], str)
         assert isinstance(detection['class_id'], int)
 
+
 def test_detect_objects_with_batch_dimension():
     """Test object detection with batch dimension in input."""
     od = ObjectDetector()
@@ -55,6 +60,7 @@ def test_detect_objects_with_batch_dimension():
     assert isinstance(detections, list)
     # Real models may not detect anything on dummy images
     assert len(detections) >= 0
+
 
 def test_detect_objects_on_square_image():
     """Test object detection on actual image file."""
@@ -75,8 +81,10 @@ def test_detect_objects_on_square_image():
 
         try:
             font = ImageFont.truetype("arial.ttf", 12)
-        except:
+        except Exception as e:
             font = None
+            print('Failed to load font')
+            print(e)
 
         for i, detection in enumerate(detections):
             bbox = detection['bbox']
@@ -93,6 +101,7 @@ def test_detect_objects_on_square_image():
         save_path = os.path.join(os.path.dirname(__file__), 'detections_squareTestImage.png')
         orig_img.save(save_path)
 
+
 def test_detect_objects_faster_rcnn():
     """Test Faster R-CNN object detection."""
     od = ObjectDetector(model_type="faster_rcnn")
@@ -102,6 +111,7 @@ def test_detect_objects_faster_rcnn():
     assert isinstance(detections, list)
     assert len(detections) >= 0
 
+
 def test_detect_objects_ssd():
     """Test SSD object detection."""
     od = ObjectDetector(model_type="ssd")
@@ -110,6 +120,7 @@ def test_detect_objects_ssd():
     detections = od.detect_objects(dummy_img)
     assert isinstance(detections, list)
     assert len(detections) >= 0
+
 
 def test_get_detection_summary():
     """Test detection summary generation."""
@@ -135,6 +146,7 @@ def test_get_detection_summary():
     assert summary['average_confidence'] == pytest.approx(0.8, rel=1e-2)
     assert summary['class_counts'] == {'person': 2, 'car': 1}
 
+
 def test_filter_detections_by_class():
     """Test filtering detections by class names."""
     od = ObjectDetector()
@@ -157,6 +169,7 @@ def test_filter_detections_by_class():
     assert 'person' in class_names
     assert 'car' in class_names
 
+
 def test_filter_detections_by_confidence():
     """Test filtering detections by confidence threshold."""
     od = ObjectDetector()
@@ -178,6 +191,7 @@ def test_filter_detections_by_confidence():
     assert len(filtered) == 1
     assert filtered[0]['confidence'] == 0.9
 
+
 def test_mock_detection():
     """Test mock detection functionality."""
     od = ObjectDetector()
@@ -195,6 +209,7 @@ def test_mock_detection():
         assert detection['class_name'] in ['person', 'car']
         assert detection['confidence'] > 0.5
 
+
 def test_detect_objects_invalid_model_type():
     """Test detection with invalid model type."""
     od = ObjectDetector()
@@ -203,6 +218,7 @@ def test_detect_objects_invalid_model_type():
 
     with pytest.raises(ValueError, match="Unsupported model type"):
         od.detect_objects(dummy_img)
+
 
 def test_faster_rcnn_detection_mocked():
     """Test Faster R-CNN detection with mocked torchvision."""
@@ -222,6 +238,7 @@ def test_faster_rcnn_detection_mocked():
 
         detections = od._detect_faster_rcnn(dummy_img)
         assert isinstance(detections, list)
+
 
 def test_ssd_detection_mocked():
     """Test SSD detection with mocked torchvision."""

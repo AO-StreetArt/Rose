@@ -151,7 +151,7 @@ class TestImageComparator:
         assert 'method' in result
         assert 'normalized' in result
         assert result['method'] == 'vgg16'
-        assert result['normalized'] == True
+        assert result['normalized'] is True
         assert result['similarity_score'] == pytest.approx(1.0, abs=1e-6)
 
     @patch('rose.processing.image_comparator.ImageComparator._extract_features')
