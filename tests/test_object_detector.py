@@ -6,6 +6,7 @@ from rose.preprocessing.image_utils import ImagePreprocessor
 import os
 from PIL import Image, ImageDraw, ImageFont
 
+
 def test_object_detector_init():
     """Test object detector initialization."""
     od = ObjectDetector()
@@ -13,16 +14,19 @@ def test_object_detector_init():
     assert od.model_type == "faster_rcnn"
     assert od.confidence_threshold == 0.5
 
+
 def test_object_detector_init_with_params():
     """Test object detector initialization with custom parameters."""
     od = ObjectDetector(model_type="faster_rcnn", confidence_threshold=0.7)
     assert od.model_type == "faster_rcnn"
     assert od.confidence_threshold == 0.7
 
+
 def test_object_detector_invalid_model_type():
     """Test object detector initialization with invalid model type."""
     with pytest.raises(ValueError, match="Unsupported model type"):
         ObjectDetector(model_type="invalid_model")
+
 
 def test_detect_objects_mocked():
     """Test object detection with mocked model."""
@@ -46,6 +50,7 @@ def test_detect_objects_mocked():
         assert isinstance(detection['class_name'], str)
         assert isinstance(detection['class_id'], int)
 
+
 def test_detect_objects_with_batch_dimension():
     """Test object detection with batch dimension in input."""
     od = ObjectDetector()
@@ -55,6 +60,7 @@ def test_detect_objects_with_batch_dimension():
     assert isinstance(detections, list)
     # Real models may not detect anything on dummy images
     assert len(detections) >= 0
+
 
 def test_detect_objects_on_square_image():
     """Test object detection on actual image file."""

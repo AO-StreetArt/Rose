@@ -5,6 +5,7 @@ from rose.processing.image_to_3d import ImageTo3DConverter
 # Dummy image path and PIL image for tests
 dummy_image_path = "dummy.png"
 
+
 def test_image_to_3d_trellis(monkeypatch):
     # Patch the TrellisImageTo3DPipeline symbol directly
     DummyPipeline = MagicMock()
@@ -23,6 +24,7 @@ def test_image_to_3d_trellis(monkeypatch):
     with patch("rose.processing.image_to_3d.TrellisImageTo3DPipeline", None):
         with pytest.raises(ImportError):
             ImageTo3DConverter()
+
 
 def test_image_to_3d_vggt(monkeypatch):
     # Patch VGGT and load_and_preprocess_images symbols directly
@@ -46,6 +48,7 @@ def test_image_to_3d_vggt(monkeypatch):
         converter = ImageTo3DConverter()
         with pytest.raises(ImportError):
             converter.image_to_3d_vggt(dummy_image_path)
+
 
 def test_image_to_3d_hunyuan(monkeypatch):
     # Patch Hunyuan3DDiTFlowMatchingPipeline symbol directly
