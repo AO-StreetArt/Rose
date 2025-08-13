@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 from unittest.mock import patch, MagicMock
 from rose.processing.feature_extractor import FeatureExtractor
 from rose.preprocessing.image_utils import ImagePreprocessor
@@ -8,9 +7,11 @@ from PIL import Image, ImageDraw, ImageFont
 from tensorflow.keras.applications.vgg16 import decode_predictions
 import cv2
 
+
 def test_feature_extractor_init():
     fe = FeatureExtractor()
     assert fe is not None
+
 
 def test_extract_features_mocked():
     fe = FeatureExtractor()
@@ -19,6 +20,7 @@ def test_extract_features_mocked():
         result = fe.extract_features(dummy_img)
         assert result == ['mocked_result']
         mock_predict.assert_called_once()
+
 
 def test_extract_features_on_square_image():
     # Use the actual image file
@@ -39,14 +41,17 @@ def test_extract_features_on_square_image():
     draw = ImageDraw.Draw(orig_img)
     try:
         font = ImageFont.truetype("arial.ttf", 16)
-    except:
+    except Exception as e:
         font = None
+        print('Failed to load font')
+        print(e)
     y = 5
     for label in labels:
         draw.text((5, y), label, fill=(255, 0, 0), font=font)
         y += 20
     save_path = os.path.join(os.path.dirname(__file__), 'features_squareTestImage.png')
     orig_img.save(save_path)
+
 
 def test_extract_features_vit_mocked():
     fe = FeatureExtractor()
@@ -63,6 +68,7 @@ def test_extract_features_vit_mocked():
             assert result is not None
             assert 'logits' in result or hasattr(result, 'logits')
 
+
 def test_extract_features_dinov2_mocked():
     fe = FeatureExtractor()
     dummy_img = np.zeros((1, 224, 224, 3), dtype=np.uint8)
@@ -78,6 +84,7 @@ def test_extract_features_dinov2_mocked():
             assert result is not None
             assert 'logits' in result or hasattr(result, 'logits')
 
+
 def test_extract_features_vit_on_square_image():
     img_path = os.path.join(os.path.dirname(__file__), 'squareTestImage.png')
     img_array = ImagePreprocessor.load_and_preprocess_image(img_path)
@@ -90,6 +97,7 @@ def test_extract_features_vit_on_square_image():
     assert logits.shape[0] == 1
     assert np.any(logits.detach().cpu().numpy() != 0), "No features detected by ViT (all logits are zero)."
 
+
 def test_extract_features_dinov2_on_square_image():
     img_path = os.path.join(os.path.dirname(__file__), 'squareTestImage.png')
     img_array = ImagePreprocessor.load_and_preprocess_image(img_path)
@@ -99,6 +107,7 @@ def test_extract_features_dinov2_on_square_image():
     assert logits is not None, "No logits returned by DINOv2 model."
     assert logits.shape[0] == 1
     assert np.any(logits.detach().cpu().numpy() != 0), "No features detected by DINOv2 (all logits are zero)."
+
 
 def test_classify_image_vit_returns_label_and_score():
     extractor = FeatureExtractor()
@@ -110,6 +119,7 @@ def test_classify_image_vit_returns_label_and_score():
     assert 'score' in result, "Result should contain a 'score' key."
     assert isinstance(result['label'], str), "Label should be a string."
     assert isinstance(result['score'], float), "Score should be a float."
+
 
 def test_classify_image_vit_on_square_image():
     extractor = FeatureExtractor()

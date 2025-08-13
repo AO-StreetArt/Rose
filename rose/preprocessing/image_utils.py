@@ -3,6 +3,8 @@ import numpy as np
 from PIL import Image
 import cv2
 from typing import Union, Tuple
+
+
 class ImagePreprocessor:
     """
     Handles image pre-processing tasks such as resizing, normalization, and file format conversion.
@@ -21,6 +23,7 @@ class ImagePreprocessor:
         img_array = image.img_to_array(img)
         img_array = np.expand_dims(img_array, axis=0)
         return img_array
+    
     @staticmethod
     def ensure_rgb_pil_image(img):
         """
@@ -35,6 +38,7 @@ class ImagePreprocessor:
         if img.mode != 'RGB':
             img = img.convert('RGB')
         return img
+    
     @staticmethod
     def ensure_bgr_image(image: np.ndarray) -> np.ndarray:
         """
@@ -47,6 +51,7 @@ class ImagePreprocessor:
         if len(image.shape) == 2:
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
         return image
+    
     @staticmethod
     def create_blob_for_hed(image: np.ndarray) -> np.ndarray:
         """
@@ -65,6 +70,7 @@ class ImagePreprocessor:
             crop=False
         )
         return blob
+    
     @staticmethod
     def ensure_grayscale_image(image: np.ndarray) -> np.ndarray:
         """
@@ -79,6 +85,7 @@ class ImagePreprocessor:
         else:
             gray = image
         return gray
+    
     @staticmethod
     def convertBGRtoRGB(image_input: np.ndarray):
         return cv2.cvtColor(image_input, cv2.COLOR_BGR2RGB)
@@ -113,4 +120,3 @@ class ImagePreprocessor:
         # Add batch dimension
         img = np.expand_dims(img, axis=0)
         return img
-

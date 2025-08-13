@@ -8,6 +8,7 @@ from rose.processing.edge_detector import EdgeDetector
 HED_PROTOTXT = 'models/hed_pretrained_bsds.caffemodel.prototxt'
 HED_CAFFEMODEL = 'models/hed_pretrained_bsds.caffemodel'
 
+
 class TestEdgeDetector(unittest.TestCase):
     def setUp(self):
         self.edge_detector = EdgeDetector()
@@ -88,6 +89,3 @@ class TestEdgeDetector(unittest.TestCase):
         self.assertIsNotNone(edges)
         self.assertEqual(edges.shape, img.shape[:2])  # HED returns grayscale
         self.assertEqual(edges.dtype, np.uint8)
-
-if __name__ == "__main__":
-    unittest.main()

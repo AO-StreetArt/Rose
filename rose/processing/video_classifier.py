@@ -121,7 +121,7 @@ class VideoClassifier:
             raise
 
     def classify_video(self, video_path: str, candidate_labels: List[str],
-                      num_frames: int = 8) -> Dict[str, Any]:
+                       num_frames: int = 8) -> Dict[str, Any]:
         """
         Classify a video using X-CLIP with zero-shot learning.
 
@@ -182,7 +182,7 @@ class VideoClassifier:
             raise
 
     def classify_video_with_frames(self, frames: List[np.ndarray],
-                                 candidate_labels: List[str]) -> Dict[str, Any]:
+                                   candidate_labels: List[str]) -> Dict[str, Any]:
         """
         Classify video frames directly without loading from file.
 
