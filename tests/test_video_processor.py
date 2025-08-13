@@ -3,15 +3,14 @@ import sys
 from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+# flake8: noqa: E402
 
 import pytest
 import numpy as np
 import time
 import threading
 import queue
-from unittest.mock import Mock, patch, MagicMock
-from PIL import Image
-import os
+from unittest.mock import Mock, patch
 
 from rose.exec.process_video_stream import VideoProcessor
 
@@ -172,9 +171,9 @@ class TestVideoProcessor:
     @patch('rose.exec.process_video_stream.ImagePreprocessor.convertBGRtoRGB')
     @patch('rose.exec.process_video_stream.Image.fromarray')
     def test_process_frame_success(self, mock_fromarray, mock_convert,
-                                  video_processor_default, sample_frame,
-                                  sample_depth_map, sample_detections,
-                                  sample_segmentation_masks):
+                                   video_processor_default, sample_frame,
+                                   sample_depth_map, sample_detections,
+                                   sample_segmentation_masks):
         """Test successful frame processing."""
         # Mock the processing components
         video_processor_default.depth_estimator.estimate_depth.return_value = sample_depth_map
@@ -207,8 +206,8 @@ class TestVideoProcessor:
     @patch('rose.exec.process_video_stream.ImagePreprocessor.convertBGRtoRGB')
     @patch('rose.exec.process_video_stream.Image.fromarray')
     def test_process_frame_zoedepth_fallback(self, mock_fromarray, mock_convert,
-                                           video_processor_custom, sample_frame,
-                                           sample_depth_map, sample_detections):
+                                             video_processor_custom, sample_frame,
+                                             sample_depth_map, sample_detections):
         """Test frame processing with ZoeDepth fallback to DPT."""
         # Mock ZoeDepth to fail, DPT to succeed
         video_processor_custom.depth_estimator.estimate_depth_zoedepth.return_value = None
@@ -231,8 +230,8 @@ class TestVideoProcessor:
     @patch('rose.exec.process_video_stream.ImagePreprocessor.convertBGRtoRGB')
     @patch('rose.exec.process_video_stream.Image.fromarray')
     def test_process_frame_no_objects(self, mock_fromarray, mock_convert,
-                                    video_processor_default, sample_frame,
-                                    sample_depth_map):
+                                      video_processor_default, sample_frame,
+                                      sample_depth_map):
         """Test frame processing with no object detections."""
         # Mock no detections
         video_processor_default.depth_estimator.estimate_depth.return_value = sample_depth_map
@@ -269,9 +268,9 @@ class TestVideoProcessor:
     @patch('rose.postprocessing.image_creator.ImageCreator.create_depth_visualization')
     @patch('rose.postprocessing.image_creator.ImageCreator.create_segmentation_visualization')
     def test_create_visualization_success(self, mock_seg_vis, mock_depth_vis,
-                                        video_processor_default, sample_frame,
-                                        sample_depth_map, sample_detections,
-                                        sample_segmentation_masks):
+                                          video_processor_default, sample_frame,
+                                          sample_depth_map, sample_detections,
+                                          sample_segmentation_masks):
         """Test successful visualization creation."""
         # Mock visualization methods
         mock_depth_vis.return_value = sample_frame.copy()
@@ -301,8 +300,8 @@ class TestVideoProcessor:
     @patch('rose.postprocessing.image_creator.ImageCreator.create_depth_visualization')
     @patch('rose.postprocessing.image_creator.ImageCreator.create_segmentation_visualization')
     def test_create_visualization_no_depth(self, mock_seg_vis, mock_depth_vis,
-                                         video_processor_default, sample_frame,
-                                         sample_detections):
+                                           video_processor_default, sample_frame,
+                                           sample_detections):
         """Test visualization creation with no depth map."""
         # Mock visualization methods
         mock_depth_vis.return_value = sample_frame.copy()

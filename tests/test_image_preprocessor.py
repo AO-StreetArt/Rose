@@ -6,9 +6,11 @@ import cv2
 from rose.preprocessing.image_utils import ImagePreprocessor
 import pytest
 
+
 def test_image_preprocessor_init():
     ip = ImagePreprocessor()
     assert ip is not None
+
 
 def test_load_and_preprocess_image():
     # Create a temporary grayscale image file
@@ -22,6 +24,7 @@ def test_load_and_preprocess_image():
         assert arr.shape == (1, 224, 224, 3)
     finally:
         os.remove(tmp_path)
+
 
 def test_ensure_rgb_pil_image():
     # Grayscale numpy array
@@ -42,6 +45,7 @@ def test_ensure_rgb_pil_image():
     assert isinstance(rgb_img3, Image.Image)
     assert rgb_img3.mode == 'RGB'
 
+
 def test_ensure_bgr_image():
     """Test the ensure_bgr_image method with different input types."""
     # Test with grayscale image (2D array)
@@ -59,6 +63,7 @@ def test_ensure_bgr_image():
     assert bgr_output.dtype == np.uint8
     # Should be the same array (no conversion needed)
     assert np.array_equal(bgr_input, bgr_output)
+
 
 def test_create_blob_for_hed():
     """Test the create_blob_for_hed method."""
@@ -97,6 +102,7 @@ def test_create_blob_for_hed_with_mean_subtraction():
     assert abs(blob[0, 1, 0, 0] - expected_g) < 1e-5
     assert abs(blob[0, 2, 0, 0] - expected_r) < 1e-5
 
+
 def test_ensure_bgr_image_edge_cases():
     """Test edge cases for ensure_bgr_image method."""
     # Test with very small image
@@ -109,6 +115,7 @@ def test_ensure_bgr_image_edge_cases():
     zero_bgr = ImagePreprocessor.ensure_bgr_image(zero_gray)
     assert zero_bgr.shape == (10, 10, 3)
     assert np.all(zero_bgr == 0)
+
 
 def test_ensure_grayscale_image():
     """Test the ensure_grayscale_image method with different input types."""
@@ -127,6 +134,7 @@ def test_ensure_grayscale_image():
     assert gray_output.dtype == np.uint8
     # Should be the same array (no conversion needed)
     assert np.array_equal(gray_input, gray_output)
+
 
 def test_ensure_grayscale_image_edge_cases():
     """Test edge cases for ensure_grayscale_image method."""
@@ -153,6 +161,7 @@ def test_ensure_grayscale_image_edge_cases():
     assert not np.array_equal(color_gray, color_bgr[:, :, 1])
     assert not np.array_equal(color_gray, color_bgr[:, :, 2])
 
+
 def test_load_and_preprocess_for_feature_extraction():
     """Test the load_and_preprocess_for_feature_extraction method."""
     # Test with numpy array input
@@ -169,6 +178,7 @@ def test_load_and_preprocess_for_feature_extraction():
         test_image, target_size=(64, 64)
     )
     assert processed_custom.shape == (1, 64, 64, 3)
+
 
 def test_load_and_preprocess_for_feature_extraction_edge_cases():
     """Test edge cases for load_and_preprocess_for_feature_extraction method."""
@@ -188,6 +198,7 @@ def test_load_and_preprocess_for_feature_extraction_edge_cases():
     processed_gray = ImagePreprocessor.load_and_preprocess_for_feature_extraction(gray_image)
     assert processed_gray.shape == (1, 224, 224, 3)
 
+
 def test_load_and_preprocess_for_feature_extraction_file_path():
     """Test load_and_preprocess_for_feature_extraction with file path input."""
     # Create a temporary test image file
@@ -203,6 +214,7 @@ def test_load_and_preprocess_for_feature_extraction_file_path():
         assert processed.dtype == np.float32
     finally:
         os.remove(tmp_path)
+
 
 def test_load_and_preprocess_for_feature_extraction_invalid_path():
     """Test that invalid file path raises appropriate error."""
