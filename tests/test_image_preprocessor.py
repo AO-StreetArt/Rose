@@ -2,7 +2,6 @@ import numpy as np
 import tempfile
 from PIL import Image
 import os
-import cv2
 from rose.preprocessing.image_utils import ImagePreprocessor
 import pytest
 
@@ -82,6 +81,7 @@ def test_create_blob_for_hed():
     bgr_image_2 = np.ones((200, 300, 3), dtype=np.uint8) * 64
     blob_2 = ImagePreprocessor.create_blob_for_hed(bgr_image_2)
     assert blob_2.shape == (1, 3, 200, 300)
+
 
 def test_create_blob_for_hed_with_mean_subtraction():
     """Test that the blob creation properly applies mean subtraction."""

@@ -38,13 +38,13 @@ class TestDepthEstimator(unittest.TestCase):
         # Remove batch dimension and convert to uint8 for PIL
         img_array = img_array[0].astype(np.uint8)
         img = Image.fromarray(img_array)
-        
+
         depth_map = self.depth_estimator.estimate_depth_zoedepth(img)
         self.assertIsInstance(depth_map, np.ndarray)
         self.assertEqual(depth_map.ndim, 2)  # Should be a 2D depth map
         self.assertGreater(depth_map.shape[0], 0)
         self.assertGreater(depth_map.shape[1], 0)
-        
+
         # Normalize depth map for visualization
         norm_depth = (255 * (depth_map - np.min(depth_map)) / (np.ptp(depth_map) + 1e-8)).astype(np.uint8)
         depth_img = Image.fromarray(norm_depth)

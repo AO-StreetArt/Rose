@@ -1,6 +1,5 @@
-import json
 import hashlib
-from typing import Dict, List, Optional, Union, Any, Tuple
+from typing import Dict, List, Optional, Union, Any
 from PIL import Image
 import numpy as np
 import io
@@ -110,7 +109,7 @@ class MemoryImageStorage:
     def _check_memory_limit(self) -> None:
         """Check if memory usage exceeds limit and cleanup if necessary."""
         current_memory_mb = sum(len(img) for img in self.images.values()) / (1024 * 1024)
-        
+
         if current_memory_mb > self.max_memory_mb:
             self.logger.warning(f"Memory limit exceeded ({current_memory_mb:.2f}MB), cleaning up...")
             self._cleanup_expired()
@@ -155,7 +154,7 @@ class MemoryImageStorage:
             # Validate image data
             if not isinstance(image_data, (np.ndarray, Image.Image, bytes)):
                 raise ValueError(f"Unsupported image data type: {type(image_data)}")
-            
+
             # Generate key if not provided
             if key is None:
                 key = self._generate_image_key(image_data)
@@ -192,7 +191,7 @@ class MemoryImageStorage:
             self.operation_count += 1
             if self.operation_count % self.cleanup_interval == 0:
                 self._check_memory_limit()
-            
+
             # Also check memory limit if we're close to the limit
             current_memory_mb = len(image_bytes) / (1024 * 1024)
             if current_memory_mb > self.max_memory_mb * 0.8:  # Check at 80% of limit
@@ -233,7 +232,7 @@ class MemoryImageStorage:
 
         except ValueError as e:
             # Re-raise ValueError for invalid formats
-            raise
+            raise e
         except Exception as e:
             self.logger.error(f"Failed to retrieve image {key}: {e}")
             return None
@@ -285,7 +284,7 @@ class MemoryImageStorage:
                         result_keys = self.tags[first_tag].copy()
                     else:
                         return []  # First tag doesn't exist, no results
-                    
+
                     # Intersect with remaining tags
                     for tag in tags[1:]:
                         if tag in self.tags:
@@ -320,7 +319,7 @@ class MemoryImageStorage:
             for key in list(self.all_keys):
                 if count >= limit:
                     break
-                    
+
                 metadata = self.get_metadata(key)
                 if metadata:
                     results.append({"key": key, "metadata": metadata})
@@ -338,7 +337,7 @@ class MemoryImageStorage:
             # Check if key exists
             if key not in self.images:
                 return False
-            
+
             # Remove from tag sets
             if key in self.key_to_tags:
                 for tag in self.key_to_tags[key]:
@@ -406,16 +405,16 @@ class MemoryImageStorage:
     def transfer_to_redis(self, redis_storage) -> int:
         """
         Transfer all images from memory to Redis storage.
-        
+
         Args:
             redis_storage: RedisImageStorage instance
-            
+
         Returns:
             int: Number of images transferred
         """
         try:
             transferred_count = 0
-            
+
             for key in list(self.all_keys):
                 if key in self.images and key in self.metadata:
                     try:
@@ -446,7 +445,7 @@ class MemoryImageStorage:
         """Clear all stored images and return count of cleared items."""
         try:
             cleared_count = len(self.all_keys)
-            
+
             self.images.clear()
             self.metadata.clear()
             self.tags.clear()
