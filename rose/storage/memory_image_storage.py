@@ -254,6 +254,39 @@ class MemoryImageStorage:
             self.logger.error(f"Failed to retrieve metadata for {key}: {e}")
             return None
 
+    def update_metadata(self, key: str, updates: Dict[str, Any]) -> bool:
+        """
+        Update metadata for a stored image.
+        
+        Args:
+            key: The key of the stored image
+            updates: Dictionary containing metadata updates
+            
+        Returns:
+            bool: True if update was successful, False otherwise
+        """
+        try:
+            if key not in self.metadata:
+                return False
+
+            # Check if expired
+            if key in self.expiry_times and datetime.now() > self.expiry_times[key]:
+                self.delete_image(key)
+                return False
+
+            # Update metadata with new values
+            self.metadata[key].update(updates)
+            
+            # Update timestamp
+            self.metadata[key]["updated_at"] = datetime.now().isoformat()
+            
+            self.logger.info(f"Updated metadata for key: {key}")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Failed to update metadata for {key}: {e}")
+            return False
+
     def search_by_tags(
         self, tags: List[str], operator: str = "OR"
     ) -> List[Dict[str, Any]]:
