@@ -427,6 +427,139 @@ class TestImageCreator:
             if os.path.exists(output_path):
                 os.remove(output_path)
 
+    def test_draw_detections_empty(self):
+        """Test drawing detections on frame with no detections."""
+        result = ImageCreator.draw_detections(self.test_image, [])
+        assert result.shape == self.test_image.shape
+        assert np.array_equal(result, self.test_image)
+
+    def test_draw_detections_single(self):
+        """Test drawing detections on frame with single detection."""
+        detections = [{
+            'bbox': [100, 100, 200, 200],
+            'confidence': 0.85,
+            'class_name': 'person'
+        }]
+
+        result = ImageCreator.draw_detections(self.test_image, detections)
+        assert result.shape == self.test_image.shape
+        # Should be different from original due to drawn boxes
+        assert not np.array_equal(result, self.test_image)
+
+    def test_draw_detections_multiple(self):
+        """Test drawing detections on frame with multiple detections."""
+        detections = [
+            {
+                'bbox': [100, 100, 200, 200],
+                'confidence': 0.85,
+                'class_name': 'person'
+            },
+            {
+                'bbox': [300, 150, 400, 250],
+                'confidence': 0.72,
+                'class_name': 'car'
+            }
+        ]
+
+        result = ImageCreator.draw_detections(self.test_image, detections)
+        assert result.shape == self.test_image.shape
+        assert not np.array_equal(result, self.test_image)
+
+    def test_draw_detections_invalid_bbox(self):
+        """Test drawing detections with invalid bounding box."""
+        detections = [{
+            'bbox': [100, 100],  # Invalid: only 2 values
+            'confidence': 0.85,
+            'class_name': 'person'
+        }]
+
+        result = ImageCreator.draw_detections(self.test_image, detections)
+        assert result.shape == self.test_image.shape
+        # Should be same as original since bbox is invalid
+        assert np.array_equal(result, self.test_image)
+
+    def test_draw_detections_none_frame(self):
+        """Test drawing detections on None frame."""
+        detections = [{'bbox': [0, 0, 100, 100], 'class_name': 'test'}]
+
+        # Should handle gracefully
+        result = ImageCreator.draw_detections(None, detections)
+        assert result is None
+
+    def test_draw_detections_none_detections(self):
+        """Test drawing None detections on frame."""
+        # Should handle gracefully
+        result = ImageCreator.draw_detections(self.test_image, None)
+        assert result is not None
+        assert np.array_equal(result, self.test_image)
+
+    def test_draw_detections_missing_fields(self):
+        """Test drawing detections with missing fields."""
+        detections = [
+            {
+                'bbox': [100, 100, 200, 200],
+                # Missing confidence and class_name
+            },
+            {
+                'bbox': [300, 150, 400, 250],
+                'confidence': 0.72,
+                'class_name': 'car'
+            }
+        ]
+
+        result = ImageCreator.draw_detections(self.test_image, detections)
+        assert result.shape == self.test_image.shape
+        # Should handle missing fields gracefully
+        assert not np.array_equal(result, self.test_image)
+
+    def test_draw_detections_edge_coordinates(self):
+        """Test drawing detections with edge coordinates."""
+        detections = [{
+            'bbox': [0, 0, 50, 50],  # Edge coordinates
+            'confidence': 0.9,
+            'class_name': 'edge_object'
+        }]
+
+        result = ImageCreator.draw_detections(self.test_image, detections)
+        assert result.shape == self.test_image.shape
+        assert not np.array_equal(result, self.test_image)
+
+    def test_draw_detections_large_bbox(self):
+        """Test drawing detections with large bounding box."""
+        detections = [{
+            'bbox': [50, 50, 150, 150],  # Large bbox
+            'confidence': 0.95,
+            'class_name': 'large_object'
+        }]
+
+        result = ImageCreator.draw_detections(self.test_image, detections)
+        assert result.shape == self.test_image.shape
+        assert not np.array_equal(result, self.test_image)
+
+    def test_draw_detections_confidence_formatting(self):
+        """Test that confidence values are properly formatted."""
+        detections = [{
+            'bbox': [100, 100, 200, 200],
+            'confidence': 0.123456789,  # Many decimal places
+            'class_name': 'test_object'
+        }]
+
+        result = ImageCreator.draw_detections(self.test_image, detections)
+        assert result.shape == self.test_image.shape
+        assert not np.array_equal(result, self.test_image)
+
+    def test_draw_detections_special_characters(self):
+        """Test drawing detections with special characters in class names."""
+        detections = [{
+            'bbox': [100, 100, 200, 200],
+            'confidence': 0.8,
+            'class_name': 'person_with_special_chars!@#$%'
+        }]
+
+        result = ImageCreator.draw_detections(self.test_image, detections)
+        assert result.shape == self.test_image.shape
+        assert not np.array_equal(result, self.test_image)
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

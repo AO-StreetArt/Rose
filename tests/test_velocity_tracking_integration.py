@@ -21,7 +21,7 @@ from PIL import Image
 from rose.storage.memory_image_storage import MemoryImageStorage
 from rose.storage.redis_image_storage import RedisImageStorage
 from rose.processing.image_comparator import ImageComparator
-from rose.exec.process_video_stream import VideoProcessor
+from rose.processing.velocity_calculator import VelocityCalculator
 
 
 def test_memory_storage():
@@ -133,9 +133,6 @@ class TestVelocityTracking(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         # Mock the required dependencies
-        self.mock_depth_estimator = Mock()
-        self.mock_object_detector = Mock()
-        self.mock_image_segmenter = Mock()
         self.mock_image_comparator = Mock()
         
         # Create a real memory storage for testing
@@ -144,31 +141,15 @@ class TestVelocityTracking(unittest.TestCase):
         # Mock Redis storage
         self.mock_redis_storage = Mock()
         
-        # Import and patch the VideoProcessor class
-        with patch('rose.storage.redis_image_storage.RedisImageStorage') as mock_redis_class:
-            mock_redis_class.return_value = self.mock_redis_storage
-            
-            # Import the VideoProcessor class
-            from rose.exec.process_video_stream import VideoProcessor
-            
-            # Create instance with mocked dependencies
-            self.processor = VideoProcessor(
-                use_zoedepth=False,
-                object_confidence=0.5,
-                object_model='faster_rcnn',
-                colormap='viridis',
-                max_objects_for_segmentation=5,
-                use_redis=False  # Disable Redis for testing
-            )
-            
-            # Replace the dependencies with mocks
-            self.processor.depth_estimator = self.mock_depth_estimator
-            self.processor.object_detector = self.mock_object_detector
-            self.processor.image_segmenter = self.mock_image_segmenter
-            self.processor.image_comparator = self.mock_image_comparator
-            self.processor.memory_storage = self.memory_storage
-            self.processor.redis_storage = self.mock_redis_storage
-            self.processor.frame_count = 0
+        # Create VelocityCalculator instance
+        self.velocity_calculator = VelocityCalculator(
+            memory_storage=self.memory_storage,
+            redis_storage=self.mock_redis_storage,
+            image_comparator=self.mock_image_comparator
+        )
+        
+        # Set frame count
+        self.velocity_calculator.frame_count = 0
     
     def tearDown(self):
         """Clean up after tests."""
@@ -195,7 +176,7 @@ class TestVelocityTracking(unittest.TestCase):
         original_frame = np.random.randint(0, 255, (200, 200, 3), dtype=np.uint8)
         
         # Call the method
-        self.processor._populate_initial_detections(
+        self.velocity_calculator._populate_initial_detections(
             detections, depth_map, segmentation_masks, original_frame
         )
         
@@ -225,18 +206,18 @@ class TestVelocityTracking(unittest.TestCase):
         segmentation_masks = None
         
         # Test depth calculation
-        depth = self.processor._calculate_object_depth(bbox, depth_map, segmentation_masks)
+        depth = self.velocity_calculator._calculate_object_depth(bbox, depth_map, segmentation_masks)
         
         # Should return the depth at the center point
         self.assertEqual(depth, 3.0)
         
         # Test with None depth map
-        depth = self.processor._calculate_object_depth(bbox, None, segmentation_masks)
+        depth = self.velocity_calculator._calculate_object_depth(bbox, None, segmentation_masks)
         self.assertEqual(depth, 0.0)
         
         # Test with out-of-bounds coordinates
         bbox_out_of_bounds = [95, 95, 105, 105]
-        depth = self.processor._calculate_object_depth(bbox_out_of_bounds, depth_map, segmentation_masks)
+        depth = self.velocity_calculator._calculate_object_depth(bbox_out_of_bounds, depth_map, segmentation_masks)
         self.assertEqual(depth, 3.0)  # Should clamp to valid coordinates
     
     def test_find_best_image_match(self):
@@ -245,7 +226,7 @@ class TestVelocityTracking(unittest.TestCase):
         current_object_region = np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
         
         # Mock the image comparator to return a high similarity score
-        self.processor.image_comparator.compare_images.return_value = {
+        self.velocity_calculator.image_comparator.compare_images.return_value = {
             'similarity_score': 0.8
         }
         
@@ -264,14 +245,14 @@ class TestVelocityTracking(unittest.TestCase):
         # Patch the retrieve_image method to return our test image
         with patch.object(self.memory_storage, 'retrieve_image', return_value=test_image):
             # Call the method
-            result = self.processor._find_best_image_match(current_object_region, matching_objects)
+            result = self.velocity_calculator._find_best_image_match(current_object_region, matching_objects)
             
             # Verify result
             self.assertIsNotNone(result)
             self.assertEqual(result['key'], 'test_key_1')
             
             # Verify image comparator was called
-            self.processor.image_comparator.compare_images.assert_called_once()
+            self.velocity_calculator.image_comparator.compare_images.assert_called_once()
     
     def test_calculate_3d_velocity(self):
         """Test 3D velocity calculation."""
@@ -288,14 +269,14 @@ class TestVelocityTracking(unittest.TestCase):
         current_depth = 6.0  # 1 meter closer
         
         # Call the method
-        velocity = self.processor._calculate_3d_velocity(previous_match, current_bbox, current_depth)
+        velocity = self.velocity_calculator._calculate_3d_velocity(previous_match, current_bbox, current_depth)
         
         # Verify velocity is calculated (should be positive)
         self.assertGreater(velocity, 0.0)
         
         # Test with very small time difference
         previous_match['metadata']['timestamp'] = time.time() - 0.05  # 50ms ago
-        velocity = self.processor._calculate_3d_velocity(previous_match, current_bbox, current_depth)
+        velocity = self.velocity_calculator._calculate_3d_velocity(previous_match, current_bbox, current_depth)
         self.assertEqual(velocity, 0.0)  # Should return 0 for very small time differences
     
     def test_update_metadata_with_match_id(self):
@@ -306,7 +287,7 @@ class TestVelocityTracking(unittest.TestCase):
         
         # Test updating metadata
         match_id = "test-match-123"
-        success = self.processor._update_metadata_with_match_id(key, match_id)
+        success = self.velocity_calculator._update_metadata_with_match_id(key, match_id)
         
         # Verify update was successful
         self.assertTrue(success)
@@ -328,7 +309,7 @@ class TestVelocityTracking(unittest.TestCase):
         depth = 4.0
         
         # Call the method
-        self.processor._store_new_detection(object_region, detection, depth)
+        self.velocity_calculator._store_new_detection(object_region, detection, depth)
         
         # Verify object was stored
         bicycle_objects = self.memory_storage.search_by_tags(['bicycle'], operator="OR")
@@ -362,12 +343,12 @@ class TestVelocityTracking(unittest.TestCase):
         original_frame = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
         
         # Mock the image comparison to return a match
-        self.processor.image_comparator.compare_images.return_value = {
+        self.velocity_calculator.image_comparator.compare_images.return_value = {
             'similarity_score': 0.8
         }
         
         # Patch the find_best_image_match method to return a match
-        with patch.object(self.processor, '_find_best_image_match') as mock_find_match:
+        with patch.object(self.velocity_calculator, '_find_best_image_match') as mock_find_match:
             mock_find_match.return_value = {
                 'key': 'initial_key',
                 'metadata': {
@@ -379,7 +360,7 @@ class TestVelocityTracking(unittest.TestCase):
             }
             
             # Call the method
-            self.processor._process_detection_for_velocity(
+            self.velocity_calculator._process_detection_for_velocity(
                 current_detection, depth_map, segmentation_masks, original_frame
             )
             
@@ -405,7 +386,7 @@ class TestVelocityTracking(unittest.TestCase):
         self.assertEqual(len(self.memory_storage), 0)
         
         # Call the method
-        self.processor.identify_objects_with_velocity(
+        self.velocity_calculator.identify_objects_with_velocity(
             detections, depth_map, segmentation_masks, original_frame
         )
         
@@ -440,12 +421,12 @@ class TestVelocityTracking(unittest.TestCase):
         original_frame = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
         
         # Mock the image comparison to return a match
-        self.processor.image_comparator.compare_images.return_value = {
+        self.velocity_calculator.image_comparator.compare_images.return_value = {
             'similarity_score': 0.8
         }
         
         # Patch the find_best_image_match method to return a match
-        with patch.object(self.processor, '_find_best_image_match') as mock_find_match:
+        with patch.object(self.velocity_calculator, '_find_best_image_match') as mock_find_match:
             mock_find_match.return_value = {
                 'key': 'initial_key',
                 'metadata': {
@@ -457,7 +438,7 @@ class TestVelocityTracking(unittest.TestCase):
             }
             
             # Call the method
-            self.processor.identify_objects_with_velocity(
+            self.velocity_calculator.identify_objects_with_velocity(
                 detections, depth_map, segmentation_masks, original_frame
             )
             
@@ -467,7 +448,7 @@ class TestVelocityTracking(unittest.TestCase):
     def test_identify_objects_with_velocity_no_detections(self):
         """Test velocity identification with no detections."""
         # Call the method with empty detections
-        self.processor.identify_objects_with_velocity(
+        self.velocity_calculator.identify_objects_with_velocity(
             [], None, None, None
         )
         
@@ -476,28 +457,13 @@ class TestVelocityTracking(unittest.TestCase):
     
     def test_identify_objects_with_velocity_redis_sync(self):
         """Test Redis synchronization during velocity identification."""
-        # Create a new processor with Redis enabled for this test
-        with patch('rose.storage.redis_image_storage.RedisImageStorage') as mock_redis_class:
-            mock_redis_class.return_value = self.mock_redis_storage
-            
-            # Create a new processor instance with Redis enabled
-            test_processor = VideoProcessor(
-                use_zoedepth=False,
-                object_confidence=0.5,
-                object_model='faster_rcnn',
-                colormap='viridis',
-                max_objects_for_segmentation=5,
-                use_redis=True  # Enable Redis for this test
-            )
-            
-            # Replace the dependencies with mocks
-            test_processor.depth_estimator = self.mock_depth_estimator
-            test_processor.object_detector = self.mock_object_detector
-            test_processor.image_segmenter = self.mock_image_segmenter
-            test_processor.image_comparator = self.mock_image_comparator
-            test_processor.memory_storage = self.memory_storage
-            test_processor.redis_storage = self.mock_redis_storage
-            test_processor.frame_count = 0
+        # Create a new velocity calculator with Redis enabled for this test
+        test_velocity_calculator = VelocityCalculator(
+            memory_storage=self.memory_storage,
+            redis_storage=self.mock_redis_storage,
+            image_comparator=self.mock_image_comparator
+        )
+        test_velocity_calculator.frame_count = 0
         
         # Mock the transfer and clear methods
         self.memory_storage.transfer_to_redis = Mock(return_value=2)
@@ -518,7 +484,7 @@ class TestVelocityTracking(unittest.TestCase):
         ]
         
         # Call the method first time to populate storage
-        test_processor.identify_objects_with_velocity(
+        test_velocity_calculator.identify_objects_with_velocity(
             initial_detections, depth_map, segmentation_masks, original_frame
         )
         
@@ -532,12 +498,12 @@ class TestVelocityTracking(unittest.TestCase):
         ]
         
         # Mock the image comparison to return a match so it processes the detection
-        test_processor.image_comparator.compare_images.return_value = {
+        test_velocity_calculator.image_comparator.compare_images.return_value = {
             'similarity_score': 0.8
         }
         
         # Patch the find_best_image_match method to return a match
-        with patch.object(test_processor, '_find_best_image_match') as mock_find_match:
+        with patch.object(test_velocity_calculator, '_find_best_image_match') as mock_find_match:
             mock_find_match.return_value = {
                 'key': 'initial_key',
                 'metadata': {
@@ -549,7 +515,7 @@ class TestVelocityTracking(unittest.TestCase):
             }
             
             # Call the method again - this should trigger Redis sync
-            test_processor.identify_objects_with_velocity(
+            test_velocity_calculator.identify_objects_with_velocity(
                 new_detections, depth_map, segmentation_masks, original_frame
             )
         
@@ -569,9 +535,9 @@ class TestVelocityTracking(unittest.TestCase):
         ]
         
         # Mock the _populate_initial_detections method to raise an exception
-        with patch.object(self.processor, '_populate_initial_detections', side_effect=Exception("Test error")):
+        with patch.object(self.velocity_calculator, '_populate_initial_detections', side_effect=Exception("Test error")):
             # Call the method - should handle the error gracefully
-            self.processor.identify_objects_with_velocity(
+            self.velocity_calculator.identify_objects_with_velocity(
                 detections, None, None, None
             )
             

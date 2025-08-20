@@ -2,7 +2,7 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 import cv2
-from typing import List
+from typing import List, Dict
 
 
 class ImageCreator:
@@ -305,3 +305,46 @@ class ImageCreator:
         overlay = np.clip(overlay, 0, 255).astype(np.uint8)
 
         return overlay
+
+    @staticmethod
+    def draw_detections(frame: np.ndarray, detections: List[Dict]) -> np.ndarray:
+        """
+        Draw object detection bounding boxes on the frame.
+
+        Args:
+            frame (np.ndarray): Input frame
+            detections (List[Dict]): Object detection results
+
+        Returns:
+            np.ndarray: Frame with detection boxes drawn
+        """
+        # Handle None frame
+        if frame is None:
+            return None
+
+        frame_with_boxes = frame.copy()
+
+        # Handle None detections
+        if detections is None:
+            return frame_with_boxes
+
+        for detection in detections:
+            bbox = detection.get('bbox', [])
+            class_name = detection.get('class_name', 'Unknown')
+            confidence = detection.get('confidence', 0.0)
+
+            if len(bbox) == 4:
+                x1, y1, x2, y2 = map(int, bbox)
+
+                # Draw bounding box
+                cv2.rectangle(frame_with_boxes, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+                # Draw label
+                label = f"{class_name}: {confidence:.2f}"
+                label_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)[0]
+                cv2.rectangle(frame_with_boxes, (x1, y1 - label_size[1] - 10),
+                              (x1 + label_size[0], y1), (0, 255, 0), -1)
+                cv2.putText(frame_with_boxes, label, (x1, y1 - 5),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+
+        return frame_with_boxes

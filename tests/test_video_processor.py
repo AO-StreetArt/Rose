@@ -56,7 +56,8 @@ class TestVideoProcessor:
         """Create a VideoProcessor instance with default settings."""
         with patch('rose.exec.process_video_stream.DepthEstimator'), \
              patch('rose.exec.process_video_stream.ObjectDetector'), \
-             patch('rose.exec.process_video_stream.ImageSegmenter'):
+             patch('rose.exec.process_video_stream.ImageSegmenter'), \
+             patch('rose.exec.process_video_stream.VelocityCalculator'):
 
             processor = VideoProcessor()
             return processor
@@ -66,7 +67,8 @@ class TestVideoProcessor:
         """Create a VideoProcessor instance with custom settings."""
         with patch('rose.exec.process_video_stream.DepthEstimator'), \
              patch('rose.exec.process_video_stream.ObjectDetector'), \
-             patch('rose.exec.process_video_stream.ImageSegmenter'):
+             patch('rose.exec.process_video_stream.ImageSegmenter'), \
+             patch('rose.exec.process_video_stream.VelocityCalculator'):
 
             processor = VideoProcessor(
                 use_zoedepth=True,
@@ -81,7 +83,8 @@ class TestVideoProcessor:
         """Test VideoProcessor initialization with default parameters."""
         with patch('rose.exec.process_video_stream.DepthEstimator'), \
              patch('rose.exec.process_video_stream.ObjectDetector'), \
-             patch('rose.exec.process_video_stream.ImageSegmenter'):
+             patch('rose.exec.process_video_stream.ImageSegmenter'), \
+             patch('rose.exec.process_video_stream.VelocityCalculator'):
 
             processor = VideoProcessor()
 
@@ -94,12 +97,14 @@ class TestVideoProcessor:
             assert processor.processing_thread is None
             assert isinstance(processor.frame_queue, queue.Queue)
             assert isinstance(processor.result_queue, queue.Queue)
+            # Note: velocity_calculator is mocked, so we can't test its actual initialization
 
     def test_video_processor_init_custom(self):
         """Test VideoProcessor initialization with custom parameters."""
         with patch('rose.exec.process_video_stream.DepthEstimator'), \
              patch('rose.exec.process_video_stream.ObjectDetector'), \
-             patch('rose.exec.process_video_stream.ImageSegmenter'):
+             patch('rose.exec.process_video_stream.ImageSegmenter'), \
+             patch('rose.exec.process_video_stream.VelocityCalculator'):
 
             processor = VideoProcessor(
                 use_zoedepth=True,
@@ -329,56 +334,7 @@ class TestVideoProcessor:
         mock_depth_vis.assert_not_called()
         mock_seg_vis.assert_not_called()
 
-    def test_draw_detections_empty(self, video_processor_default, sample_frame):
-        """Test drawing detections on frame with no detections."""
-        result = video_processor_default.draw_detections(sample_frame, [])
-        assert result.shape == sample_frame.shape
-        assert np.array_equal(result, sample_frame)
 
-    def test_draw_detections_single(self, video_processor_default, sample_frame):
-        """Test drawing detections on frame with single detection."""
-        detections = [{
-            'bbox': [100, 100, 200, 200],
-            'confidence': 0.85,
-            'class_name': 'person'
-        }]
-
-        result = video_processor_default.draw_detections(sample_frame, detections)
-        assert result.shape == sample_frame.shape
-        # Should be different from original due to drawn boxes
-        assert not np.array_equal(result, sample_frame)
-
-    def test_draw_detections_multiple(self, video_processor_default, sample_frame):
-        """Test drawing detections on frame with multiple detections."""
-        detections = [
-            {
-                'bbox': [100, 100, 200, 200],
-                'confidence': 0.85,
-                'class_name': 'person'
-            },
-            {
-                'bbox': [300, 150, 400, 250],
-                'confidence': 0.72,
-                'class_name': 'car'
-            }
-        ]
-
-        result = video_processor_default.draw_detections(sample_frame, detections)
-        assert result.shape == sample_frame.shape
-        assert not np.array_equal(result, sample_frame)
-
-    def test_draw_detections_invalid_bbox(self, video_processor_default, sample_frame):
-        """Test drawing detections with invalid bounding box."""
-        detections = [{
-            'bbox': [100, 100],  # Invalid: only 2 values
-            'confidence': 0.85,
-            'class_name': 'person'
-        }]
-
-        result = video_processor_default.draw_detections(sample_frame, detections)
-        assert result.shape == sample_frame.shape
-        # Should be same as original since bbox is invalid
-        assert np.array_equal(result, sample_frame)
 
     def test_start_processing(self, video_processor_default):
         """Test starting the processing thread."""
@@ -511,11 +467,12 @@ class TestVideoProcessor:
         """Test integration with real processing components (if available)."""
         try:
             # This test will only run if the real components are available
-            processor = VideoProcessor(
-                use_zoedepth=False,  # Use DPT for faster testing
-                object_confidence=0.3,  # Lower threshold
-                max_objects_for_segmentation=2
-            )
+            with patch('rose.exec.process_video_stream.VelocityCalculator'):
+                processor = VideoProcessor(
+                    use_zoedepth=False,  # Use DPT for faster testing
+                    object_confidence=0.3,  # Lower threshold
+                    max_objects_for_segmentation=2
+                )
 
             # Create a simple test frame
             test_frame = np.random.randint(0, 255, (224, 224, 3), dtype=np.uint8)
@@ -540,6 +497,33 @@ class TestVideoProcessor:
             # Skip test if components are not available
             pytest.skip(f"Real components not available: {e}")
 
+    def test_get_velocity_stats(self, video_processor_default):
+        """Test getting velocity statistics."""
+        # Mock velocity stats
+        mock_velocity_stats = {
+            'total_tracked_objects': 3,
+            'average_velocity': 2.5,
+            'min_velocity': 1.0,
+            'max_velocity': 4.0,
+            'velocity_samples': 3
+        }
+        
+        video_processor_default.velocity_calculator.get_velocity_stats.return_value = mock_velocity_stats
+        
+        stats = video_processor_default.get_velocity_stats()
+        
+        assert stats == mock_velocity_stats
+        video_processor_default.velocity_calculator.get_velocity_stats.assert_called_once()
+
+    def test_get_velocity_stats_exception_handling(self, video_processor_default):
+        """Test getting velocity statistics with exception handling."""
+        # Mock exception in velocity calculator
+        video_processor_default.velocity_calculator.get_velocity_stats.side_effect = Exception("Velocity error")
+        
+        stats = video_processor_default.get_velocity_stats()
+        
+        assert stats == {}
+
 
 class TestVideoProcessorEdgeCases:
     """Test edge cases and error conditions for VideoProcessor."""
@@ -548,7 +532,8 @@ class TestVideoProcessorEdgeCases:
         """Test initialization with invalid colormap."""
         with patch('rose.exec.process_video_stream.DepthEstimator'), \
              patch('rose.exec.process_video_stream.ObjectDetector'), \
-             patch('rose.exec.process_video_stream.ImageSegmenter'):
+             patch('rose.exec.process_video_stream.ImageSegmenter'), \
+             patch('rose.exec.process_video_stream.VelocityCalculator'):
 
             # Should not raise exception, just use default
             processor = VideoProcessor(colormap='invalid_colormap')
@@ -558,7 +543,8 @@ class TestVideoProcessorEdgeCases:
         """Test processing an empty frame."""
         with patch('rose.exec.process_video_stream.DepthEstimator'), \
              patch('rose.exec.process_video_stream.ObjectDetector'), \
-             patch('rose.exec.process_video_stream.ImageSegmenter'):
+             patch('rose.exec.process_video_stream.ImageSegmenter'), \
+             patch('rose.exec.process_video_stream.VelocityCalculator'):
 
             processor = VideoProcessor()
             empty_frame = np.array([], dtype=np.uint8)
@@ -571,7 +557,8 @@ class TestVideoProcessorEdgeCases:
         """Test processing a None frame."""
         with patch('rose.exec.process_video_stream.DepthEstimator'), \
              patch('rose.exec.process_video_stream.ObjectDetector'), \
-             patch('rose.exec.process_video_stream.ImageSegmenter'):
+             patch('rose.exec.process_video_stream.ImageSegmenter'), \
+             patch('rose.exec.process_video_stream.VelocityCalculator'):
 
             processor = VideoProcessor()
 
@@ -583,38 +570,14 @@ class TestVideoProcessorEdgeCases:
         """Test extracting prompts from None detections."""
         with patch('rose.exec.process_video_stream.DepthEstimator'), \
              patch('rose.exec.process_video_stream.ObjectDetector'), \
-             patch('rose.exec.process_video_stream.ImageSegmenter'):
+             patch('rose.exec.process_video_stream.ImageSegmenter'), \
+             patch('rose.exec.process_video_stream.VelocityCalculator'):
 
             processor = VideoProcessor()
             prompts = processor.extract_object_prompts(None)
             assert prompts == []
 
-    def test_draw_detections_none_frame(self):
-        """Test drawing detections on None frame."""
-        with patch('rose.exec.process_video_stream.DepthEstimator'), \
-             patch('rose.exec.process_video_stream.ObjectDetector'), \
-             patch('rose.exec.process_video_stream.ImageSegmenter'):
 
-            processor = VideoProcessor()
-            detections = [{'bbox': [0, 0, 100, 100], 'class_name': 'test'}]
-
-            # Should handle gracefully
-            result = processor.draw_detections(None, detections)
-            assert result is None
-
-    def test_draw_detections_none_detections(self):
-        """Test drawing None detections on frame."""
-        with patch('rose.exec.process_video_stream.DepthEstimator'), \
-             patch('rose.exec.process_video_stream.ObjectDetector'), \
-             patch('rose.exec.process_video_stream.ImageSegmenter'):
-
-            processor = VideoProcessor()
-            frame = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
-
-            # Should handle gracefully
-            result = processor.draw_detections(frame, None)
-            assert result is not None
-            assert np.array_equal(result, frame)
 
 
 if __name__ == "__main__":
