@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit tests for velocity tracking functionality in process_video_stream.py.
+Unit tests for velocity tracking functionality in VelocityCalculator.
 
 This module provides comprehensive testing of the velocity tracking system
 including object detection, depth calculation, image matching, and velocity computation.
@@ -18,17 +18,15 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from rose.storage.memory_image_storage import MemoryImageStorage
+from rose.processing.velocity_calculator import VelocityCalculator
 
 
 class TestVelocityTrackingMethods(unittest.TestCase):
-    """Unit tests for velocity tracking methods in VideoProcessor."""
+    """Unit tests for velocity tracking methods in VelocityCalculator."""
     
     def setUp(self):
         """Set up test fixtures for each test method."""
         # Mock the required dependencies
-        self.mock_depth_estimator = Mock()
-        self.mock_object_detector = Mock()
-        self.mock_image_segmenter = Mock()
         self.mock_image_comparator = Mock()
         
         # Create a real memory storage for testing
@@ -37,31 +35,15 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         # Mock Redis storage
         self.mock_redis_storage = Mock()
         
-        # Import and patch the VideoProcessor class
-        with patch('rose.storage.redis_image_storage.RedisImageStorage') as mock_redis_class:
-            mock_redis_class.return_value = self.mock_redis_storage
-            
-            # Import the VideoProcessor class
-            from rose.exec.process_video_stream import VideoProcessor
-            
-            # Create instance with mocked dependencies
-            self.processor = VideoProcessor(
-                use_zoedepth=False,
-                object_confidence=0.5,
-                object_model='faster_rcnn',
-                colormap='viridis',
-                max_objects_for_segmentation=5,
-                use_redis=False  # Disable Redis for testing
-            )
-            
-            # Replace the dependencies with mocks
-            self.processor.depth_estimator = self.mock_depth_estimator
-            self.processor.object_detector = self.mock_object_detector
-            self.processor.image_segmenter = self.mock_image_segmenter
-            self.processor.image_comparator = self.mock_image_comparator
-            self.processor.memory_storage = self.memory_storage
-            self.processor.redis_storage = self.mock_redis_storage
-            self.processor.frame_count = 0
+        # Create VelocityCalculator instance
+        self.velocity_calculator = VelocityCalculator(
+            memory_storage=self.memory_storage,
+            redis_storage=self.mock_redis_storage,
+            image_comparator=self.mock_image_comparator
+        )
+        
+        # Set frame count
+        self.velocity_calculator.frame_count = 0
     
     def tearDown(self):
         """Clean up after each test method."""
@@ -88,7 +70,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         original_frame = np.random.randint(0, 255, (200, 200, 3), dtype=np.uint8)
         
         # Call the method
-        self.processor._populate_initial_detections(
+        self.velocity_calculator._populate_initial_detections(
             detections, depth_map, segmentation_masks, original_frame
         )
         
@@ -129,7 +111,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         original_frame = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
         
         # Call the method
-        self.processor._populate_initial_detections(
+        self.velocity_calculator._populate_initial_detections(
             detections, depth_map, segmentation_masks, original_frame
         )
         
@@ -151,7 +133,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         original_frame = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
         
         # Call the method
-        self.processor._populate_initial_detections(
+        self.velocity_calculator._populate_initial_detections(
             detections, depth_map, segmentation_masks, original_frame
         )
         
@@ -165,7 +147,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         segmentation_masks = None
         
         # Test depth calculation
-        depth = self.processor._calculate_object_depth(bbox, depth_map, segmentation_masks)
+        depth = self.velocity_calculator._calculate_object_depth(bbox, depth_map, segmentation_masks)
         
         # Should return the depth at the center point (30, 30)
         self.assertEqual(depth, 3.0)
@@ -176,7 +158,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         depth_map = None
         segmentation_masks = None
         
-        depth = self.processor._calculate_object_depth(bbox, depth_map, segmentation_masks)
+        depth = self.velocity_calculator._calculate_object_depth(bbox, depth_map, segmentation_masks)
         self.assertEqual(depth, 0.0)
     
     def test_calculate_object_depth_out_of_bounds_coordinates(self):
@@ -185,7 +167,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         depth_map = np.ones((100, 100)) * 3.0
         segmentation_masks = None
         
-        depth = self.processor._calculate_object_depth(bbox, depth_map, segmentation_masks)
+        depth = self.velocity_calculator._calculate_object_depth(bbox, depth_map, segmentation_masks)
         # Should clamp to valid coordinates and return depth
         self.assertEqual(depth, 3.0)
     
@@ -196,7 +178,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         segmentation_masks = np.ones((100, 100), dtype=bool)  # Mock segmentation mask
         original_frame = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
         
-        depth = self.processor._calculate_object_depth(bbox, depth_map, segmentation_masks)
+        depth = self.velocity_calculator._calculate_object_depth(bbox, depth_map, segmentation_masks)
         # Should use center point when segmentation masks are available
         self.assertEqual(depth, 3.0)
     
@@ -206,7 +188,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         depth_map = np.ones((100, 100)) * 2.5
         segmentation_masks = None
         
-        depth = self.processor._calculate_object_depth(bbox, depth_map, segmentation_masks)
+        depth = self.velocity_calculator._calculate_object_depth(bbox, depth_map, segmentation_masks)
         # Should handle edge coordinates correctly
         self.assertEqual(depth, 2.5)
     
@@ -216,7 +198,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         current_object_region = np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
         
         # Mock the image comparator to return a high similarity score
-        self.processor.image_comparator.compare_images.return_value = {
+        self.velocity_calculator.image_comparator.compare_images.return_value = {
             'similarity_score': 0.8
         }
         
@@ -235,21 +217,21 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         # Patch the retrieve_image method to return our test image
         with patch.object(self.memory_storage, 'retrieve_image', return_value=test_image):
             # Call the method
-            result = self.processor._find_best_image_match(current_object_region, matching_objects)
+            result = self.velocity_calculator._find_best_image_match(current_object_region, matching_objects)
             
             # Verify result
             self.assertIsNotNone(result)
             self.assertEqual(result['key'], 'test_key_1')
             
             # Verify image comparator was called
-            self.processor.image_comparator.compare_images.assert_called_once()
+            self.velocity_calculator.image_comparator.compare_images.assert_called_once()
     
     def test_find_best_image_match_no_matches(self):
         """Test finding best match when no objects match."""
         current_object_region = np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
         
         # Mock the image comparator to return a low similarity score
-        self.processor.image_comparator.compare_images.return_value = {
+        self.velocity_calculator.image_comparator.compare_images.return_value = {
             'similarity_score': 0.3  # Below threshold
         }
         
@@ -264,7 +246,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         self.memory_storage.store_image(test_image, {'test': True}, ['test'])
         
         with patch.object(self.memory_storage, 'retrieve_image', return_value=test_image):
-            result = self.processor._find_best_image_match(current_object_region, matching_objects)
+            result = self.velocity_calculator._find_best_image_match(current_object_region, matching_objects)
             
             # Should return None when no matches above threshold
             self.assertIsNone(result)
@@ -274,7 +256,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         current_object_region = np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
         matching_objects = []
         
-        result = self.processor._find_best_image_match(current_object_region, matching_objects)
+        result = self.velocity_calculator._find_best_image_match(current_object_region, matching_objects)
         
         # Should return None for empty list
         self.assertIsNone(result)
@@ -284,7 +266,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         current_object_region = np.random.randint(0, 255, (32, 32, 3), dtype=np.uint8)
         
         # Mock the image comparator
-        self.processor.image_comparator.compare_images.return_value = {
+        self.velocity_calculator.image_comparator.compare_images.return_value = {
             'similarity_score': 0.8
         }
         
@@ -300,7 +282,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         self.memory_storage.store_image(test_image, {'test': True}, ['test'])
         
         with patch.object(self.memory_storage, 'retrieve_image', return_value=test_image):
-            result = self.processor._find_best_image_match(current_object_region, matching_objects)
+            result = self.velocity_calculator._find_best_image_match(current_object_region, matching_objects)
             
             # Should handle dimension differences and still find match
             self.assertIsNotNone(result)
@@ -320,7 +302,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         current_depth = 6.0  # 1 meter closer
         
         # Call the method
-        velocity = self.processor._calculate_3d_velocity(previous_match, current_bbox, current_depth)
+        velocity = self.velocity_calculator._calculate_3d_velocity(previous_match, current_bbox, current_depth)
         
         # Verify velocity is calculated (should be positive)
         self.assertGreater(velocity, 0.0)
@@ -339,7 +321,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         current_bbox = [15, 25, 55, 65]
         current_depth = 6.0
         
-        velocity = self.processor._calculate_3d_velocity(previous_match, current_bbox, current_depth)
+        velocity = self.velocity_calculator._calculate_3d_velocity(previous_match, current_bbox, current_depth)
         
         # Should return 0 for very small time differences
         self.assertEqual(velocity, 0.0)
@@ -357,7 +339,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         current_bbox = [15, 25, 55, 65]
         current_depth = 6.0
         
-        velocity = self.processor._calculate_3d_velocity(previous_match, current_bbox, current_depth)
+        velocity = self.velocity_calculator._calculate_3d_velocity(previous_match, current_bbox, current_depth)
         
         # Should return 0 for zero time difference
         self.assertEqual(velocity, 0.0)
@@ -375,7 +357,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         current_bbox = [15, 25, 55, 65]
         current_depth = 6.0
         
-        velocity = self.processor._calculate_3d_velocity(previous_match, current_bbox, current_depth)
+        velocity = self.velocity_calculator._calculate_3d_velocity(previous_match, current_bbox, current_depth)
         
         # Should return 0 for negative time difference
         self.assertEqual(velocity, 0.0)
@@ -388,7 +370,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         
         # Test updating metadata
         match_id = "test-match-123"
-        success = self.processor._update_metadata_with_match_id(key, match_id)
+        success = self.velocity_calculator._update_metadata_with_match_id(key, match_id)
         
         # Verify update was successful
         self.assertTrue(success)
@@ -401,7 +383,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
     def test_update_metadata_with_match_id_nonexistent_key(self):
         """Test metadata update with nonexistent key."""
         match_id = "test-match-123"
-        success = self.processor._update_metadata_with_match_id("nonexistent_key", match_id)
+        success = self.velocity_calculator._update_metadata_with_match_id("nonexistent_key", match_id)
         
         # Should return False for nonexistent key
         self.assertFalse(success)
@@ -418,7 +400,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         depth = 4.0
         
         # Call the method
-        self.processor._store_new_detection(object_region, detection, depth)
+        self.velocity_calculator._store_new_detection(object_region, detection, depth)
         
         # Verify object was stored
         bicycle_objects = self.memory_storage.search_by_tags(['bicycle'], operator="OR")
@@ -445,7 +427,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         depth = 4.0
         
         # Call the method
-        self.processor._store_new_detection(object_region, detection, depth)
+        self.velocity_calculator._store_new_detection(object_region, detection, depth)
         
         # Verify no object was stored due to invalid bbox
         self.assertEqual(len(self.memory_storage), 0)
@@ -472,12 +454,12 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         original_frame = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
         
         # Mock the image comparison to return a match
-        self.processor.image_comparator.compare_images.return_value = {
+        self.velocity_calculator.image_comparator.compare_images.return_value = {
             'similarity_score': 0.8
         }
         
         # Patch the find_best_image_match method to return a match
-        with patch.object(self.processor, '_find_best_image_match') as mock_find_match:
+        with patch.object(self.velocity_calculator, '_find_best_image_match') as mock_find_match:
             mock_find_match.return_value = {
                 'key': 'initial_key',
                 'metadata': {
@@ -489,7 +471,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
             }
             
             # Call the method
-            self.processor._process_detection_for_velocity(
+            self.velocity_calculator._process_detection_for_velocity(
                 current_detection, depth_map, segmentation_masks, original_frame
             )
             
@@ -510,9 +492,9 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         original_frame = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
         
         # Mock the find_best_image_match method to return None (no match)
-        with patch.object(self.processor, '_find_best_image_match', return_value=None):
+        with patch.object(self.velocity_calculator, '_find_best_image_match', return_value=None):
             # Call the method
-            self.processor._process_detection_for_velocity(
+            self.velocity_calculator._process_detection_for_velocity(
                 current_detection, depth_map, segmentation_masks, original_frame
             )
             
@@ -539,7 +521,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         self.assertEqual(len(self.memory_storage), 0)
         
         # Call the method
-        self.processor.identify_objects_with_velocity(
+        self.velocity_calculator.identify_objects_with_velocity(
             detections, depth_map, segmentation_masks, original_frame
         )
         
@@ -574,12 +556,12 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         original_frame = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
         
         # Mock the image comparison to return a match
-        self.processor.image_comparator.compare_images.return_value = {
+        self.velocity_calculator.image_comparator.compare_images.return_value = {
             'similarity_score': 0.8
         }
         
         # Patch the find_best_image_match method to return a match
-        with patch.object(self.processor, '_find_best_image_match') as mock_find_match:
+        with patch.object(self.velocity_calculator, '_find_best_image_match') as mock_find_match:
             mock_find_match.return_value = {
                 'key': 'initial_key',
                 'metadata': {
@@ -591,7 +573,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
             }
             
             # Call the method
-            self.processor.identify_objects_with_velocity(
+            self.velocity_calculator.identify_objects_with_velocity(
                 detections, depth_map, segmentation_masks, original_frame
             )
             
@@ -601,7 +583,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
     def test_identify_objects_with_velocity_no_detections(self):
         """Test velocity identification with no detections."""
         # Call the method with empty detections
-        self.processor.identify_objects_with_velocity(
+        self.velocity_calculator.identify_objects_with_velocity(
             [], None, None, None
         )
         
@@ -611,7 +593,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
     def test_identify_objects_with_velocity_redis_sync(self):
         """Test Redis synchronization during velocity identification."""
         # Enable Redis for this test
-        self.processor.redis_storage = self.mock_redis_storage
+        self.velocity_calculator.redis_storage = self.mock_redis_storage
         
         # Mock the transfer and clear methods
         self.memory_storage.transfer_to_redis = Mock(return_value=2)
@@ -639,12 +621,12 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         original_frame = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
         
         # Mock the image comparison to return a match
-        self.processor.image_comparator.compare_images.return_value = {
+        self.velocity_calculator.image_comparator.compare_images.return_value = {
             'similarity_score': 0.8
         }
         
         # Patch the find_best_image_match method to return a match
-        with patch.object(self.processor, '_find_best_image_match') as mock_find_match:
+        with patch.object(self.velocity_calculator, '_find_best_image_match') as mock_find_match:
             mock_find_match.return_value = {
                 'key': 'initial_key',
                 'metadata': {
@@ -656,7 +638,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
             }
             
             # Call the method
-            self.processor.identify_objects_with_velocity(
+            self.velocity_calculator.identify_objects_with_velocity(
                 detections, depth_map, segmentation_masks, original_frame
             )
             
@@ -667,7 +649,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
     def test_identify_objects_with_velocity_redis_sync_failure(self):
         """Test Redis synchronization failure handling."""
         # Enable Redis for this test
-        self.processor.redis_storage = self.mock_redis_storage
+        self.velocity_calculator.redis_storage = self.mock_redis_storage
         
         # Mock the transfer method to raise an exception
         self.memory_storage.transfer_to_redis = Mock(side_effect=Exception("Redis sync failed"))
@@ -695,12 +677,12 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         original_frame = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
         
         # Mock the image comparison to return a match
-        self.processor.image_comparator.compare_images.return_value = {
+        self.velocity_calculator.image_comparator.compare_images.return_value = {
             'similarity_score': 0.8
         }
         
         # Patch the find_best_image_match method to return a match
-        with patch.object(self.processor, '_find_best_image_match') as mock_find_match:
+        with patch.object(self.velocity_calculator, '_find_best_image_match') as mock_find_match:
             mock_find_match.return_value = {
                 'key': 'initial_key',
                 'metadata': {
@@ -712,7 +694,7 @@ class TestVelocityTrackingMethods(unittest.TestCase):
             }
             
             # Call the method - should handle Redis sync failure gracefully
-            self.processor.identify_objects_with_velocity(
+            self.velocity_calculator.identify_objects_with_velocity(
                 detections, depth_map, segmentation_masks, original_frame
             )
             
@@ -731,9 +713,9 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         ]
         
         # Mock the _populate_initial_detections method to raise an exception
-        with patch.object(self.processor, '_populate_initial_detections', side_effect=Exception("Test error")):
+        with patch.object(self.velocity_calculator, '_populate_initial_detections', side_effect=Exception("Test error")):
             # Call the method - should handle the error gracefully
-            self.processor.identify_objects_with_velocity(
+            self.velocity_calculator.identify_objects_with_velocity(
                 detections, None, None, None
             )
             
@@ -769,16 +751,66 @@ class TestVelocityTrackingMethods(unittest.TestCase):
         original_frame = np.random.randint(0, 255, (200, 200, 3), dtype=np.uint8)
         
         # Mock the _process_detection_for_velocity method to raise an exception for the first detection
-        with patch.object(self.processor, '_process_detection_for_velocity') as mock_process:
+        with patch.object(self.velocity_calculator, '_process_detection_for_velocity') as mock_process:
             mock_process.side_effect = [Exception("Processing error"), None]
             
             # Call the method - should handle individual errors gracefully
-            self.processor.identify_objects_with_velocity(
+            self.velocity_calculator.identify_objects_with_velocity(
                 detections, depth_map, segmentation_masks, original_frame
             )
             
             # Should process both detections despite the error in the first one
             self.assertEqual(mock_process.call_count, 2)
+    
+    def test_set_frame_count(self):
+        """Test setting frame count."""
+        self.velocity_calculator.set_frame_count(42)
+        self.assertEqual(self.velocity_calculator.frame_count, 42)
+    
+    def test_get_velocity_stats(self):
+        """Test getting velocity statistics."""
+        # Test with empty storage
+        stats = self.velocity_calculator.get_velocity_stats()
+        self.assertEqual(stats['total_tracked_objects'], 0)
+        self.assertEqual(stats['average_velocity'], 0.0)
+        
+        # Test with some velocity data - create objects with match tags and velocity
+        initial_image = np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
+        
+        # Store an object with velocity data and match tag
+        metadata_with_velocity = {
+            'class_name': 'person',
+            'bbox': [10, 10, 50, 50],
+            'velocity_mps': 2.5,
+            'match_id': 'test-match-123'
+        }
+        tags_with_velocity = ['person', 'match_test-match-123']
+        self.memory_storage.store_image(initial_image, metadata_with_velocity, tags_with_velocity)
+        
+        # Store another object with velocity data
+        metadata_with_velocity2 = {
+            'class_name': 'car',
+            'bbox': [100, 100, 150, 150],
+            'velocity_mps': 5.0,
+            'match_id': 'test-match-456'
+        }
+        tags_with_velocity2 = ['car', 'match_test-match-456']
+        self.memory_storage.store_image(initial_image, metadata_with_velocity2, tags_with_velocity2)
+        
+        # Store an object without velocity data (should not be counted)
+        metadata_no_velocity = {
+            'class_name': 'bicycle',
+            'bbox': [200, 200, 250, 250]
+        }
+        tags_no_velocity = ['bicycle']
+        self.memory_storage.store_image(initial_image, metadata_no_velocity, tags_no_velocity)
+        
+        stats = self.velocity_calculator.get_velocity_stats()
+        self.assertEqual(stats['total_tracked_objects'], 2)  # Only objects with velocity
+        self.assertEqual(stats['average_velocity'], 3.75)  # (2.5 + 5.0) / 2
+        self.assertEqual(stats['min_velocity'], 2.5)
+        self.assertEqual(stats['max_velocity'], 5.0)
+        self.assertEqual(stats['velocity_samples'], 2)
 
 
 def run_tests():
