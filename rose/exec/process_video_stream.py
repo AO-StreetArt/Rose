@@ -294,18 +294,6 @@ class VideoProcessor:
                 'original_frame': frame
             }
 
-
-
-
-
-
-
-
-
-
-
-
-
     def get_storage_stats(self) -> Dict[str, Any]:
         """
         Get storage statistics for both memory and Redis storage.
@@ -340,8 +328,6 @@ class VideoProcessor:
         except Exception as e:
             print(f"Error getting velocity stats: {e}")
             return {}
-
-
 
     def processing_worker(self):
         """Worker thread for processing frames."""
@@ -448,9 +434,6 @@ class VideoProcessor:
             )
 
         return original_frame, depth_vis, seg_vis
-
-
-
 
 def process_video_stream(camera_id: int = 0,
                         fps: int = 30,
@@ -636,6 +619,7 @@ def process_video_stream(camera_id: int = 0,
         cap.release()
         cv2.destroyAllWindows()
         print("Video processing stopped")
+        sys.exit(1)
 
 
 def main() -> None:
@@ -719,24 +703,17 @@ Examples:
 
     args = parser.parse_args()
 
-    try:
-        process_video_stream(
-            camera_id=args.camera,
-            fps=args.fps,
-            use_zoedepth=args.zoedepth,
-            object_confidence=args.object_confidence,
-            object_model=args.object_model,
-            colormap=args.colormap,
-            max_objects_for_segmentation=args.max_objects,
-            frame_skip=args.frame_skip,
-            use_redis=not args.no_redis
-        )
-    except KeyboardInterrupt:
-        print("\nOperation cancelled by user.")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit(1)
+    process_video_stream(
+        camera_id=args.camera,
+        fps=args.fps,
+        use_zoedepth=args.zoedepth,
+        object_confidence=args.object_confidence,
+        object_model=args.object_model,
+        colormap=args.colormap,
+        max_objects_for_segmentation=args.max_objects,
+        frame_skip=args.frame_skip,
+        use_redis=not args.no_redis
+    )
 
 
 if __name__ == "__main__":
