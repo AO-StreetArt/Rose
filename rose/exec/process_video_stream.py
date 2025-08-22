@@ -270,11 +270,7 @@ class VideoProcessor:
 
             # Start velocity identification on a separate thread (non-blocking)
             if detections:
-                threading.Thread(
-                    target=self.velocity_calculator.identify_objects_with_velocity,
-                    args=(detections, depth_map, segmentation_masks, frame),
-                    daemon=True
-                ).start()
+                self.executor.submit(self.velocity_calculator.identify_objects_with_velocity, detections, depth_map, segmentation_masks, frame)
 
             return {
                 'depth_map': depth_map,

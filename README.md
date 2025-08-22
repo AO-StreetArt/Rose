@@ -1,5 +1,7 @@
 # Rose: Spatial Intelligence Library
 
+[![Unit Tests](https://github.com/AO-StreetArt/Rose/actions/workflows/python-app.yml/badge.svg?branch=main)](https://github.com/AO-StreetArt/Rose/actions/workflows/python-app.yml)
+
 ## What is Spatial Intelligence?
 Spatial intelligence, or visuo-spatial ability, is the ability to generate, retain, retrieve, and transform well-structured visual images. It enables us to perceive, hold, manipulate, and problem-solve using visual information—such as assembling puzzles or finding our way in the world.
 
