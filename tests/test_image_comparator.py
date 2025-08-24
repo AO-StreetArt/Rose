@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 
 from rose.processing.image_comparator import ImageComparator
 from rose.processing.feature_extractor import FeatureExtractor
+from rose.processing.feature_detector import FeatureDetector
 
 
 class TestImageComparator:
@@ -32,11 +33,16 @@ class TestImageComparator:
         comparator = ImageComparator()
         assert comparator.feature_extractor is not None
         assert isinstance(comparator.feature_extractor, FeatureExtractor)
+        assert comparator.feature_detector is not None
+        assert isinstance(comparator.feature_detector, FeatureDetector)
+        assert comparator.bf_matcher is not None
 
         # Test with custom feature extractor
         custom_extractor = FeatureExtractor()
-        comparator = ImageComparator(custom_extractor)
+        custom_detector = FeatureDetector(n_features=1000)
+        comparator = ImageComparator(custom_extractor, custom_detector)
         assert comparator.feature_extractor is custom_extractor
+        assert comparator.feature_detector is custom_detector
 
     def test_load_and_preprocess_image_from_path(self):
         """Test loading and preprocessing image from file path."""
@@ -207,6 +213,280 @@ class TestImageComparator:
         assert result[1]['similarity_score'] == pytest.approx(1.0, abs=1e-6)
         assert result[0]['index'] in [0, 2]  # Should be one of the identical images
         assert result[1]['index'] in [0, 2]  # Should be the other identical image
+
+    def test_compare_images_orb_successful_comparison(self):
+        """Test successful ORB-based image comparison."""
+        # Create more feature-rich test images that ORB can detect
+        # Create a checkerboard pattern for more features
+        img1 = np.zeros((256, 256, 3), dtype=np.uint8)
+        for i in range(0, 256, 32):
+            for j in range(0, 256, 32):
+                if (i // 32 + j // 32) % 2 == 0:
+                    img1[i:i+32, j:j+32] = [255, 0, 0]  # Red squares
+                else:
+                    img1[i:i+32, j:j+32] = [0, 0, 255]  # Blue squares
+        
+        # Create a different pattern
+        img2 = np.zeros((256, 256, 3), dtype=np.uint8)
+        for i in range(0, 256, 16):
+            for j in range(0, 256, 16):
+                if (i // 16 + j // 16) % 2 == 0:
+                    img2[i:i+16, j:j+16] = [0, 255, 0]  # Green squares
+                else:
+                    img2[i:i+16, j:j+16] = [255, 255, 0]  # Yellow squares
+        
+        # Save images temporarily
+        img1_path = "tests/temp_test_image1.png"
+        img2_path = "tests/temp_test_image2.png"
+        cv2.imwrite(img1_path, img1)
+        cv2.imwrite(img2_path, img2)
+        
+        try:
+            result = self.comparator.compare_images_orb(img1_path, img2_path)
+            
+            # Check that all expected keys are present
+            expected_keys = [
+                'similarity_score', 'method', 'normalized', 'keypoints_1', 
+                'keypoints_2', 'descriptors_1', 'descriptors_2', 
+                'matches_count', 'match_ratio', 'total_possible_matches'
+            ]
+            for key in expected_keys:
+                assert key in result
+            
+            # Check method is correct
+            assert result['method'] == 'orb'
+            assert result['normalized'] is True
+            
+            # Check that we got some keypoints and descriptors
+            assert result['keypoints_1'] > 0
+            assert result['keypoints_2'] > 0
+            assert result['descriptors_1'] is not None
+            assert result['descriptors_2'] is not None
+            
+            # Check similarity score is in valid range
+            assert 0.0 <= result['similarity_score'] <= 1.0
+            
+            # Check match ratio is in valid range
+            assert 0.0 <= result['match_ratio'] <= 1.0
+            
+        finally:
+            # Clean up temporary files
+            if os.path.exists(img1_path):
+                os.remove(img1_path)
+            if os.path.exists(img2_path):
+                os.remove(img2_path)
+
+    def test_compare_images_orb_simple_images_no_features(self):
+        """Test ORB comparison with simple images that have no detectable features."""
+        # Create simple solid color images that ORB won't detect features in
+        img1 = np.zeros((100, 100, 3), dtype=np.uint8)
+        img1[:, :] = [255, 0, 0]  # Red square
+        
+        img2 = np.zeros((100, 100, 3), dtype=np.uint8)
+        img2[:, :] = [0, 255, 0]  # Green square
+        
+        # Save images temporarily
+        img1_path = "tests/temp_test_image1.png"
+        img2_path = "tests/temp_test_image2.png"
+        cv2.imwrite(img1_path, img1)
+        cv2.imwrite(img2_path, img2)
+        
+        try:
+            result = self.comparator.compare_images_orb(img1_path, img2_path)
+            
+            # For simple images, we expect no descriptors to be found
+            assert result['method'] == 'orb'
+            assert result['similarity_score'] == 0.0
+            assert result['keypoints_1'] == 0
+            assert result['keypoints_2'] == 0
+            assert result['descriptors_1'] is None
+            assert result['descriptors_2'] is None
+            assert result['matches_count'] == 0
+            assert result['match_ratio'] == 0.0
+            assert 'error' in result
+            assert 'No descriptors found' in result['error']
+            
+        finally:
+            # Clean up temporary files
+            if os.path.exists(img1_path):
+                os.remove(img1_path)
+            if os.path.exists(img2_path):
+                os.remove(img2_path)
+
+    def test_compare_images_orb_identical_images(self):
+        """Test ORB comparison with identical images."""
+        # Create a feature-rich image that ORB can detect
+        feature_rich_img = np.zeros((256, 256, 3), dtype=np.uint8)
+        # Create a pattern with edges and corners
+        for i in range(0, 256, 32):
+            for j in range(0, 256, 32):
+                if (i // 32 + j // 32) % 2 == 0:
+                    feature_rich_img[i:i+32, j:j+32] = [255, 0, 0]  # Red squares
+                else:
+                    feature_rich_img[i:i+32, j:j+32] = [0, 0, 255]  # Blue squares
+        
+        # Save temporarily
+        temp_path = "tests/temp_feature_rich.png"
+        cv2.imwrite(temp_path, feature_rich_img)
+        
+        try:
+            result = self.comparator.compare_images_orb(temp_path, temp_path)
+            
+            # Identical images should have high similarity
+            assert result['method'] == 'orb'
+            assert result['keypoints_1'] == result['keypoints_2']
+            assert result['descriptors_1'] == result['descriptors_2']
+            assert result['matches_count'] > 0
+            assert result['similarity_score'] > 0.0
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def test_compare_images_orb_with_numpy_arrays(self):
+        """Test ORB comparison with numpy arrays instead of file paths."""
+        # Create test images as numpy arrays with more features
+        img1 = np.zeros((256, 256, 3), dtype=np.uint8)
+        # Create a complex pattern with corners and edges
+        for i in range(0, 256, 16):
+            for j in range(0, 256, 16):
+                if (i // 16 + j // 16) % 2 == 0:
+                    img1[i:i+16, j:j+16] = [255, 0, 0]  # Red squares
+                else:
+                    img1[i:i+16, j:j+16] = [0, 0, 255]  # Blue squares
+        
+        # Add some diagonal lines for more features
+        for k in range(0, 256, 4):
+            img1[k:k+2, k:k+2] = [255, 255, 255]  # White dots
+        
+        img2 = np.zeros((256, 256, 3), dtype=np.uint8)
+        # Create a different complex pattern
+        for i in range(0, 256, 12):
+            for j in range(0, 256, 12):
+                if (i // 12 + j // 12) % 2 == 0:
+                    img2[i:i+12, j:j+12] = [0, 255, 0]  # Green squares
+                else:
+                    img2[i:i+12, j:j+12] = [255, 255, 0]  # Yellow squares
+        
+        # Add some horizontal lines for more features
+        for k in range(0, 256, 8):
+            img2[k:k+2, :] = [255, 255, 255]  # White lines
+        
+        result = self.comparator.compare_images_orb(img1, img2)
+        
+        assert result['method'] == 'orb'
+        assert result['keypoints_1'] > 0
+        assert result['keypoints_2'] > 0
+        assert result['descriptors_1'] is not None
+        assert result['descriptors_2'] is not None
+        assert 0.0 <= result['similarity_score'] <= 1.0
+
+    def test_compare_images_orb_no_descriptors_found(self):
+        """Test ORB comparison when no descriptors are found."""
+        # Create a very small image that might not generate descriptors
+        tiny_img = np.zeros((10, 10, 3), dtype=np.uint8)
+        
+        # Mock the feature detector to return no descriptors
+        with patch.object(self.comparator.feature_detector, 'detect_and_compute') as mock_detect:
+            mock_detect.return_value = ([], None)  # No keypoints, no descriptors
+            
+            result = self.comparator.compare_images_orb(tiny_img, tiny_img)
+            
+            assert result['method'] == 'orb'
+            assert result['similarity_score'] == 0.0
+            assert result['keypoints_1'] == 0
+            assert result['keypoints_2'] == 0
+            assert result['descriptors_1'] is None
+            assert result['descriptors_2'] is None
+            assert result['matches_count'] == 0
+            assert result['match_ratio'] == 0.0
+            assert 'error' in result
+
+    def test_compare_images_orb_one_image_no_descriptors(self):
+        """Test ORB comparison when only one image has no descriptors."""
+        # Create a very small image that ORB won't detect features in
+        tiny_img = np.zeros((10, 10, 3), dtype=np.uint8)
+        
+        # Create a feature-rich image that ORB will detect features in
+        feature_rich_img = np.zeros((256, 256, 3), dtype=np.uint8)
+        for i in range(0, 256, 16):
+            for j in range(0, 256, 16):
+                if (i // 16 + j // 16) % 2 == 0:
+                    feature_rich_img[i:i+16, j:j+16] = [255, 0, 0]  # Red squares
+                else:
+                    feature_rich_img[i:i+16, j:j+16] = [0, 0, 255]  # Blue squares
+        
+        # Save the feature-rich image temporarily
+        temp_path = "tests/temp_feature_rich_for_test.png"
+        cv2.imwrite(temp_path, feature_rich_img)
+        
+        try:
+            # Test with tiny image first (should fail)
+            result1 = self.comparator.compare_images_orb(tiny_img, tiny_img)
+            assert result1['method'] == 'orb'
+            assert result1['similarity_score'] == 0.0
+            assert result1['keypoints_1'] == 0
+            assert result1['keypoints_2'] == 0
+            assert result1['descriptors_1'] is None
+            assert result1['descriptors_2'] is None
+            assert result1['matches_count'] == 0
+            assert result1['match_ratio'] == 0.0
+            assert 'error' in result1
+            
+            # Test with feature-rich image (should succeed)
+            result2 = self.comparator.compare_images_orb(temp_path, temp_path)
+            assert result2['method'] == 'orb'
+            assert result2['keypoints_1'] > 0
+            assert result2['keypoints_2'] > 0
+            assert result2['descriptors_1'] is not None
+            assert result2['descriptors_2'] is not None
+            assert result2['matches_count'] > 0
+            assert result2['similarity_score'] > 0.0
+            
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def test_compare_images_orb_parameter_consistency(self):
+        """Test that ORB method maintains same parameter interface as compare_images."""
+        # Test that the method accepts the same parameters (even if not used)
+        result = self.comparator.compare_images_orb(
+            self.test_image_path, 
+            self.test_image_path,
+            method='vgg16',  # This should be ignored but not cause errors
+            normalize=False   # This should be ignored but not cause errors
+        )
+        
+        assert result['method'] == 'orb'  # Should always be 'orb'
+        assert result['normalized'] is False  # Should preserve the parameter value
+        assert 'similarity_score' in result
+
+    def test_compare_images_orb_feature_detector_integration(self):
+        """Test that ORB method properly integrates with FeatureDetector."""
+        # Create a mock feature detector
+        mock_detector = Mock()
+        mock_detector.detect_and_compute.side_effect = [
+            ([Mock()], np.random.rand(20, 32).astype(np.uint8)),  # First image
+            ([Mock()], np.random.rand(15, 32).astype(np.uint8))   # Second image
+        ]
+        
+        # Create comparator with mock detector
+        comparator = ImageComparator(feature_detector=mock_detector)
+        
+        # Test images
+        img1 = np.zeros((100, 100, 3), dtype=np.uint8)
+        img2 = np.zeros((100, 100, 3), dtype=np.uint8)
+        
+        result = comparator.compare_images_orb(img1, img2)
+        
+        # Verify detector was called twice (once for each image)
+        assert mock_detector.detect_and_compute.call_count == 2
+        
+        # Verify result structure
+        assert result['method'] == 'orb'
+        assert result['keypoints_1'] == 1  # Mock returns 1 keypoint
+        assert result['keypoints_2'] == 1  # Mock returns 1 keypoint
+        assert result['descriptors_1'] == (20, 32)
+        assert result['descriptors_2'] == (15, 32)
 
     def teardown_method(self):
         """Clean up test fixtures."""
