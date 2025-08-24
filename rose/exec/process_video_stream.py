@@ -433,7 +433,6 @@ class VideoProcessor:
 
 def process_video_stream(camera_id: int = 0,
                         fps: int = 30,
-                        use_zoedepth: bool = False,
                         object_confidence: float = 0.5,
                         object_model: str = 'faster_rcnn',
                         colormap: str = 'viridis',
@@ -446,7 +445,6 @@ def process_video_stream(camera_id: int = 0,
     Args:
         camera_id (int): Camera device ID
         fps (int): Target frames per second
-        use_zoedepth (bool): Whether to use ZoeDepth model
         object_confidence (float): Minimum confidence for object detection
         object_model (str): Object detection model to use
         colormap (str): Colormap for depth visualization
@@ -455,7 +453,7 @@ def process_video_stream(camera_id: int = 0,
     """
     # Initialize video processor
     processor = VideoProcessor(
-        use_zoedepth=use_zoedepth,
+        use_zoedepth=False, # Turning off ZoeDepth to standardize using relative depth models instead of absolute
         object_confidence=object_confidence,
         object_model=object_model,
         colormap=colormap,
@@ -484,7 +482,6 @@ def process_video_stream(camera_id: int = 0,
     print("Camera opened successfully!")
     print(f"Resolution: {actual_width}x{actual_height}")
     print(f"FPS: {actual_fps}")
-    print(f"Using {'ZoeDepth' if use_zoedepth else 'DPT'} for depth estimation")
     print(f"Object detection model: {object_model.upper()}")
     print(f"Object confidence threshold: {object_confidence}")
     print(f"Colormap: {colormap}")
@@ -651,12 +648,6 @@ Examples:
     )
 
     parser.add_argument(
-        "--zoedepth",
-        action="store_true",
-        help="Use ZoeDepth model instead of DPT for depth estimation"
-    )
-
-    parser.add_argument(
         "--object-confidence",
         type=float,
         default=0.5,
@@ -702,7 +693,6 @@ Examples:
     process_video_stream(
         camera_id=args.camera,
         fps=args.fps,
-        use_zoedepth=args.zoedepth,
         object_confidence=args.object_confidence,
         object_model=args.object_model,
         colormap=args.colormap,
