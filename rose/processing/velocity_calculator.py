@@ -387,13 +387,8 @@ class VelocityCalculator:
             if time_diff <= 0.1:  # Minimum 100ms threshold to avoid division by very small numbers
                 return 0.0
             
-            # Calculate 3D distance
-            # Convert pixel coordinates to meters (assuming camera calibration)
-            # For simplicity, we'll use a rough approximation
-            pixel_to_meter_ratio = 0.001  # Adjust based on your camera setup
-            
-            dx = (current_center_x - prev_center_x) * pixel_to_meter_ratio
-            dy = (current_center_y - prev_center_y) * pixel_to_meter_ratio
+            dx = (current_center_x - prev_center_x)
+            dy = (current_center_y - prev_center_y)
             dz = current_depth - prev_depth
             
             # Calculate 3D distance
