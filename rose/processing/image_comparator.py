@@ -1,8 +1,10 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Dict, Any, Union
+import cv2
 
 from .feature_extractor import FeatureExtractor
+from .feature_detector import FeatureDetector
 from ..preprocessing.image_utils import ImagePreprocessor
 
 
@@ -12,7 +14,7 @@ class ImageComparator:
     Supports multiple feature extraction methods (VGG16, ViT, DINOv2).
     """
 
-    def __init__(self, feature_extractor: FeatureExtractor = None):
+    def __init__(self, feature_extractor: FeatureExtractor = None, feature_detector: FeatureDetector = None):
         """
         Initialize the ImageComparator with a feature extractor.
 
@@ -21,6 +23,8 @@ class ImageComparator:
                 If None, creates a new one.
         """
         self.feature_extractor = feature_extractor or FeatureExtractor()
+        self.feature_detector = feature_detector or FeatureDetector(n_features=500)
+        self.bf_matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
     def compare_images(self,
                        img1: Union[np.ndarray, str],
@@ -142,6 +146,72 @@ class ImageComparator:
 
         return similarities[:top_k]
 
+    def compare_images_orb(self,
+                           img1: Union[np.ndarray, str],
+                           img2: Union[np.ndarray, str],
+                           method: str = 'vgg16',
+                           normalize: bool = True) -> Dict[str, Any]:
+        """
+        Compare two images using ORB feature detection and Brute-Force matching.
+
+        Args:
+            img1 (Union[np.ndarray, str]): First image as numpy array or file path
+            img2 (Union[np.ndarray, str]): Second image as numpy array or file path
+            method (str): Feature extraction method ('vgg16', 'vit', 'dinov2') - kept for API consistency
+            normalize (bool): Whether to normalize features before comparison - kept for API consistency
+
+        Returns:
+            Dict[str, Any]: Comparison results including match count, match ratio, and metadata
+        """
+        # Load and preprocess images for ORB (different from deep learning preprocessing)
+        img1_array = self._load_and_preprocess_image_for_orb(img1)
+        img2_array = self._load_and_preprocess_image_for_orb(img2)
+
+        # Detect and compute features for both images
+        keypoints1, descriptors1 = self.feature_detector.detect_and_compute(img1_array)
+        keypoints2, descriptors2 = self.feature_detector.detect_and_compute(img2_array)
+
+        # Check if descriptors were found
+        if descriptors1 is None or descriptors2 is None:
+            return {
+                'similarity_score': 0.0,
+                'method': 'orb',
+                'normalized': normalize,
+                'keypoints_1': len(keypoints1),
+                'keypoints_2': len(keypoints2),
+                'descriptors_1': None,
+                'descriptors_2': None,
+                'matches_count': 0,
+                'match_ratio': 0.0,
+                'error': 'No descriptors found in one or both images'
+            }
+
+        # Find matches
+        matches = self.bf_matcher.match(descriptors1, descriptors2)
+
+        # Sort matches by distance
+        matches = sorted(matches, key=lambda x: x.distance)
+
+        # Calculate match ratio (number of good matches / total possible matches)
+        total_possible_matches = min(len(descriptors1), len(descriptors2))
+        match_ratio = len(matches) / total_possible_matches if total_possible_matches > 0 else 0.0
+
+        # Convert match ratio to similarity score (0-1 range)
+        similarity_score = min(match_ratio, 1.0)
+
+        return {
+            'similarity_score': similarity_score,
+            'method': 'orb',
+            'normalized': normalize,
+            'keypoints_1': len(keypoints1),
+            'keypoints_2': len(keypoints2),
+            'descriptors_1': descriptors1.shape if descriptors1 is not None else None,
+            'descriptors_2': descriptors2.shape if descriptors2 is not None else None,
+            'matches_count': len(matches),
+            'match_ratio': match_ratio,
+            'total_possible_matches': total_possible_matches
+        }
+
     def _load_and_preprocess_image(self, image_input: Union[np.ndarray, str]) -> np.ndarray:
         """
         Load and preprocess an image for feature extraction.
@@ -153,6 +223,46 @@ class ImageComparator:
             np.ndarray: Preprocessed image array
         """
         return ImagePreprocessor.load_and_preprocess_for_feature_extraction(image_input)
+
+    def _load_and_preprocess_image_for_orb(self, image_input: Union[np.ndarray, str]) -> np.ndarray:
+        """
+        Load and preprocess an image specifically for ORB feature detection.
+        ORB requires 3D uint8 arrays, not 4D float32 tensors.
+
+        Args:
+            image_input (Union[np.ndarray, str]): Image as numpy array or file path
+
+        Returns:
+            np.ndarray: Preprocessed image array suitable for ORB (3D, uint8)
+        """
+        if isinstance(image_input, str):
+            # Load image from file path
+            img = cv2.imread(image_input)
+            if img is None:
+                raise ValueError(f"Could not load image from path: {image_input}")
+            # Convert BGR to RGB for consistency
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        else:
+            # Handle numpy array input
+            img = image_input.copy()
+            
+            # If it's a 4D tensor (from deep learning preprocessing), remove batch dimension
+            if len(img.shape) == 4:
+                img = img.squeeze(axis=0)
+            
+            # If it's float32 normalized [0,1], convert back to uint8 [0,255]
+            if img.dtype == np.float32:
+                img = (img * 255).astype(np.uint8)
+            
+            # Ensure it's 3D
+            if len(img.shape) != 3:
+                raise ValueError(f"Expected 3D image array, got shape: {img.shape}")
+        
+        # Resize to a reasonable size for ORB (not too small, not too large)
+        target_size = (256, 256)  # Good balance for ORB
+        img = cv2.resize(img, target_size)
+        
+        return img
 
     def _extract_features(self, img_array: np.ndarray, method: str) -> np.ndarray:
         """

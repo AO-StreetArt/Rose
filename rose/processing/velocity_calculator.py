@@ -31,7 +31,8 @@ class VelocityCalculator:
     def __init__(self, 
                  memory_storage: MemoryImageStorage,
                  redis_storage: Optional[RedisImageStorage] = None,
-                 image_comparator: Optional[ImageComparator] = None):
+                 image_comparator: Optional[ImageComparator] = None,
+                 comparison_method: str = 'deep_learning'):
         """
         Initialize the velocity calculator.
 
@@ -39,10 +40,12 @@ class VelocityCalculator:
             memory_storage (MemoryImageStorage): Memory storage for object tracking
             redis_storage (Optional[RedisImageStorage]): Redis storage for persistence
             image_comparator (Optional[ImageComparator]): Image comparison utility
+            comparison_method (str): Method to use for image comparison ('deep_learning' or 'orb')
         """
         self.memory_storage = memory_storage
         self.redis_storage = redis_storage
         self.image_comparator = image_comparator or ImageComparator()
+        self.comparison_method = comparison_method
         self.frame_count = 0
 
     def identify_objects_with_velocity(self, 
@@ -326,12 +329,19 @@ class VelocityCalculator:
                             current_resized = current_object_region
                         
                         # Compare images using the image comparator
-                        comparison_result = self.image_comparator.compare_images(
-                            current_resized, 
-                            stored_image, 
-                            method='vgg16', 
-                            normalize=True
-                        )
+                        if self.comparison_method == 'orb':
+                            comparison_result = self.image_comparator.compare_images_orb(
+                                current_resized, 
+                                stored_image
+                            )
+                        else:
+                            # Use deep learning-based comparison
+                            comparison_result = self.image_comparator.compare_images(
+                                current_resized, 
+                                stored_image, 
+                                method='vgg16', 
+                                normalize=True
+                            )
                         
                         similarity_score = comparison_result.get('similarity_score', 0.0)
                         
