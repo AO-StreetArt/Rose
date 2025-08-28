@@ -10,7 +10,8 @@ HED_CAFFEMODEL = 'models/hed_pretrained_bsds.caffemodel'
 
 
 class TestEdgeDetector(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.edge_detector = EdgeDetector()
 
     def test_detects_edges_on_simple_shape(self):
