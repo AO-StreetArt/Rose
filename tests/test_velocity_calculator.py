@@ -20,18 +20,23 @@ from rose.processing.image_comparator import ImageComparator
 class TestVelocityCalculator:
     """Test cases for the VelocityCalculator class."""
 
-    def setup_method(self):
-        """Set up test fixtures before each test method."""
-        # Create mock storage systems
+    @pytest.fixture(scope="module")
+    def mock_memory_storage(self):
         self.mock_memory_storage = Mock(spec=MemoryImageStorage)
+        return self.mock_memory_storage
+    
+    @pytest.fixture(scope="module")
+    def mock_redis_storage(self):
         self.mock_redis_storage = Mock(spec=RedisImageStorage)
+        return self.mock_redis_storage
+    
+    @pytest.fixture(scope="module")
+    def mock_image_comparator(self):
         self.mock_image_comparator = Mock(spec=ImageComparator)
-        
-        # Create test data
-        self.sample_frame = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
-        self.sample_depth_map = np.random.rand(480, 640).astype(np.float32)
-        self.sample_segmentation_masks = np.random.rand(2, 480, 640).astype(np.float32)
-        
+        return self.mock_image_comparator
+    
+    @pytest.fixture
+    def sample_detections(self):
         # Create sample detections
         self.sample_detections = [
             {
@@ -47,23 +52,39 @@ class TestVelocityCalculator:
                 'class_id': 3
             }
         ]
+        return self.sample_detections
+    
+    @pytest.fixture
+    def sample_frame(self):
+        self.sample_frame = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
+        return self.sample_frame
+    
+    @pytest.fixture
+    def sample_depth_map(self):
+        self.sample_depth_map = np.random.rand(480, 640).astype(np.float32)
+        return self.sample_depth_map
+    
+    @pytest.fixture
+    def sample_segmentation_masks(self):
+        self.sample_segmentation_masks = np.random.rand(2, 480, 640).astype(np.float32)
+        return self.sample_segmentation_masks
 
     @pytest.fixture(scope="module")
-    def velocity_calculator_default(self):
+    def velocity_calculator_default(self, mock_memory_storage, mock_image_comparator):
         """Create a VelocityCalculator instance with default settings."""
         return VelocityCalculator(
-            memory_storage=self.mock_memory_storage,
+            memory_storage=mock_memory_storage,
             redis_storage=None,
-            image_comparator=self.mock_image_comparator
+            image_comparator=mock_image_comparator
         )
 
     @pytest.fixture(scope="module")
-    def velocity_calculator_with_redis(self):
+    def velocity_calculator_with_redis(self, mock_memory_storage, mock_redis_storage, mock_image_comparator):
         """Create a VelocityCalculator instance with Redis storage."""
         return VelocityCalculator(
-            memory_storage=self.mock_memory_storage,
-            redis_storage=self.mock_redis_storage,
-            image_comparator=self.mock_image_comparator
+            memory_storage=mock_memory_storage,
+            redis_storage=mock_redis_storage,
+            image_comparator=mock_image_comparator
         )
 
     def test_velocity_calculator_init_default(self):

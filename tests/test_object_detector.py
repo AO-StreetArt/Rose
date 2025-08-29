@@ -28,12 +28,11 @@ class TestObjectDetector:
 
     def test_object_detector_init_with_params(self, object_detector_ssd):
         """Test object detector initialization with custom parameters."""
-        od = ObjectDetector(model_type="faster_rcnn", confidence_threshold=0.7)
-        assert od.model_type == "ssd"
-        assert od.confidence_threshold == 0.7
+        assert object_detector_ssd.model_type == "ssd"
+        assert object_detector_ssd.confidence_threshold == 0.7
 
 
-    def test_object_detector_invalid_model_type():
+    def test_object_detector_invalid_model_type(self):
         """Test object detector initialization with invalid model type."""
         with pytest.raises(ValueError, match="Unsupported model type"):
             ObjectDetector(model_type="invalid_model")
@@ -251,7 +250,7 @@ class TestObjectDetector:
             assert isinstance(detections, list)
 
 
-    def test_ssd_detection_mocked():
+    def test_ssd_detection_mocked(self):
         """Test SSD detection with mocked torchvision."""
         with patch('torchvision.models.detection.ssd300_vgg16') as mock_model:
             mock_model.return_value = MagicMock()
