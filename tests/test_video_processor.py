@@ -57,6 +57,7 @@ class TestVideoProcessor:
         with patch('rose.exec.process_video_stream.DepthEstimator'), \
              patch('rose.exec.process_video_stream.ObjectDetector'), \
              patch('rose.exec.process_video_stream.ImageSegmenter'), \
+             patch('rose.exec.process_video_stream.ImageComparator'), \
              patch('rose.exec.process_video_stream.VelocityCalculator'):
 
             processor = VideoProcessor()
@@ -68,6 +69,7 @@ class TestVideoProcessor:
         with patch('rose.exec.process_video_stream.DepthEstimator'), \
              patch('rose.exec.process_video_stream.ObjectDetector'), \
              patch('rose.exec.process_video_stream.ImageSegmenter'), \
+             patch('rose.exec.process_video_stream.ImageComparator'), \
              patch('rose.exec.process_video_stream.VelocityCalculator'):
 
             processor = VideoProcessor(
@@ -84,6 +86,7 @@ class TestVideoProcessor:
         with patch('rose.exec.process_video_stream.DepthEstimator'), \
              patch('rose.exec.process_video_stream.ObjectDetector'), \
              patch('rose.exec.process_video_stream.ImageSegmenter'), \
+             patch('rose.exec.process_video_stream.ImageComparator'), \
              patch('rose.exec.process_video_stream.VelocityCalculator'):
 
             processor = VideoProcessor()
@@ -104,6 +107,7 @@ class TestVideoProcessor:
         with patch('rose.exec.process_video_stream.DepthEstimator'), \
              patch('rose.exec.process_video_stream.ObjectDetector'), \
              patch('rose.exec.process_video_stream.ImageSegmenter'), \
+             patch('rose.exec.process_video_stream.ImageComparator'), \
              patch('rose.exec.process_video_stream.VelocityCalculator'):
 
             processor = VideoProcessor(

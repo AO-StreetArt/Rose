@@ -48,7 +48,7 @@ class TestVelocityCalculator:
             }
         ]
 
-    @pytest.fixture
+    @pytest.fixture(scope="module")
     def velocity_calculator_default(self):
         """Create a VelocityCalculator instance with default settings."""
         return VelocityCalculator(
@@ -57,7 +57,7 @@ class TestVelocityCalculator:
             image_comparator=self.mock_image_comparator
         )
 
-    @pytest.fixture
+    @pytest.fixture(scope="module")
     def velocity_calculator_with_redis(self):
         """Create a VelocityCalculator instance with Redis storage."""
         return VelocityCalculator(
