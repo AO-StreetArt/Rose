@@ -6,7 +6,8 @@ from rose.processing.feature_detector import FeatureDetector
 
 
 class TestFeatureDetector(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.detector = FeatureDetector()
 
     def test_orb_feature_detection_on_synthetic_image(self):

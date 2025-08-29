@@ -7,7 +7,8 @@ from rose.preprocessing.image_utils import ImagePreprocessor
 
 
 class TestDepthEstimator(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.depth_estimator = DepthEstimator()
 
     def test_depth_estimator_init(self):

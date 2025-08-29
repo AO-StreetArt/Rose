@@ -82,4 +82,11 @@ I'm also honestly torn on how much we want to do in terms of inter-frame analysi
 
 ### Memory & Retention
 
-Now, we need to store all this data, along with analysis from the result
+Now, we need to store all this data, along with analysis from the result.  Here's what we've got at this point:
+
+* Detected Objects with bounding boxes & tags on each frame, with the same object linked between frames
+  * Object velocity and direction (relative to camera)
+* Depth Maps for each frame
+* Segmentation Masks for each frame
+
+* Video clip tags

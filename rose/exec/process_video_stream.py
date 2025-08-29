@@ -58,7 +58,8 @@ class VideoProcessor:
                  object_model: str = 'faster_rcnn',
                  colormap: str = 'viridis',
                  max_objects_for_segmentation: int = 5,
-                 use_redis: bool = True):
+                 use_redis: bool = True,
+                 use_orb_comparison: bool = False):
         """
         Initialize the video processor.
 
@@ -69,12 +70,14 @@ class VideoProcessor:
             colormap (str): Colormap for depth visualization
             max_objects_for_segmentation (int): Maximum number of objects to use as segmentation prompts
             use_redis (bool): Whether to use Redis storage
+            use_orb_comparison (bool): Whether to use ORB-based image comparison instead of deep learning
         """
         self.use_zoedepth = use_zoedepth
         self.object_confidence = object_confidence
         self.object_model = object_model
         self.colormap = colormap
         self.max_objects_for_segmentation = max_objects_for_segmentation
+        self.use_orb_comparison = use_orb_comparison
 
         # Initialize processing modules
         print("Initializing depth estimator...")
@@ -110,13 +113,21 @@ class VideoProcessor:
         # Initialize image comparator
         print("Initializing image comparator...")
         self.image_comparator = ImageComparator()
+        
+        # Print comparison method being used
+        if self.use_orb_comparison:
+            print("Using ORB-based image comparison for velocity tracking")
+        else:
+            print("Using deep learning-based image comparison for velocity tracking")
 
         # Initialize velocity calculator
         print("Initializing velocity calculator...")
+        comparison_method = 'orb' if self.use_orb_comparison else 'deep_learning'
         self.velocity_calculator = VelocityCalculator(
             memory_storage=self.memory_storage,
             redis_storage=self.redis_storage,
-            image_comparator=self.image_comparator
+            image_comparator=self.image_comparator,
+            comparison_method=comparison_method
         )
 
         # Processing queues for threading
@@ -438,7 +449,8 @@ def process_video_stream(camera_id: int = 0,
                         colormap: str = 'viridis',
                         max_objects_for_segmentation: int = 5,
                         frame_skip: int = 5,
-                        use_redis: bool = True) -> None:
+                        use_redis: bool = True,
+                        use_orb_comparison: bool = False) -> None:
     """
     Process video stream from webcam with real-time analysis.
 
@@ -450,6 +462,8 @@ def process_video_stream(camera_id: int = 0,
         colormap (str): Colormap for depth visualization
         max_objects_for_segmentation (int): Maximum objects to use for segmentation
         frame_skip (int): Process every Nth frame (higher values = faster processing)
+        use_redis (bool): Whether to use Redis storage
+        use_orb_comparison (bool): Whether to use ORB-based image comparison
     """
     # Initialize video processor
     processor = VideoProcessor(
@@ -458,7 +472,8 @@ def process_video_stream(camera_id: int = 0,
         object_model=object_model,
         colormap=colormap,
         max_objects_for_segmentation=max_objects_for_segmentation,
-        use_redis=use_redis
+        use_redis=use_redis,
+        use_orb_comparison=use_orb_comparison
     )
 
     # Open camera
@@ -487,6 +502,7 @@ def process_video_stream(camera_id: int = 0,
     print(f"Colormap: {colormap}")
     print(f"Frame skip: Every {frame_skip}th frame will be processed")
     print(f"Velocity tracking: {'Enabled' if use_redis else 'Memory-only mode'}")
+    print(f"Image comparison: {'ORB-based' if use_orb_comparison else 'Deep learning-based'}")
     print("Press 'q' to quit, 's' to save current frame")
 
     # Start processing thread
@@ -630,6 +646,7 @@ Examples:
   python process_video_stream.py --frame-skip 10
   python process_video_stream.py --frame-skip 2 --fps 60
   python process_video_stream.py --no-redis  # Use memory-only storage
+  python process_video_stream.py --use-orb-comparison  # Use ORB-based image comparison
         """
     )
 
@@ -688,6 +705,12 @@ Examples:
         help="Disable Redis storage and use memory-only storage"
     )
 
+    parser.add_argument(
+        "--use-orb-comparison",
+        action="store_true",
+        help="Use ORB-based image comparison instead of deep learning-based comparison for velocity tracking"
+    )
+
     args = parser.parse_args()
 
     process_video_stream(
@@ -698,7 +721,8 @@ Examples:
         colormap=args.colormap,
         max_objects_for_segmentation=args.max_objects,
         frame_skip=args.frame_skip,
-        use_redis=not args.no_redis
+        use_redis=not args.no_redis,
+        use_orb_comparison=args.use_orb_comparison
     )
 
 
