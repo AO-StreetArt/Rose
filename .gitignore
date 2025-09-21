@@ -2,7 +2,9 @@
 /experiments/*.png 
 models/ 
 tests/*.png
+tests/*.txt
 !tests/squareTestImage.png 
+!tests/CubeImage.png 
 *.pyc
 */*.pyc
 */*/*.pyc

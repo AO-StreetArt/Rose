@@ -34,10 +34,21 @@ Rose processes a series of images to:
    git clone <your-repo-url>
    cd spatial_intelligence
    ```
-2. Install dependencies (recommended: use a virtual environment):
+2. Install the CPU-only PyTorch stack (recommended: within a virtual environment):
+   ```bash
+   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+   ```
+3. Export the PyTorch CMake path so `torchmcubes` can build against Torch:
+   ```bash
+   export Torch_DIR="$(python3 -c 'import torch, pathlib; print(pathlib.Path(torch.utils.cmake_prefix_path))')"
+   ```
+   On Windows PowerShell use:
+   ```powershell
+   $env:Torch_DIR = python -c "import torch, pathlib; print(pathlib.Path(torch.utils.cmake_prefix_path))"
+   ```
+4. Install project dependencies:
    ```bash
    pip install -r requirements.txt
-   pip install pillow tensorflow torch transformers
    ```
 
 ## Advanced 3D Model Support: Installation Instructions for TRELLIS, VGGT, and Hunyuan3D 2.0
@@ -128,6 +139,44 @@ spatial_intelligence/
 ```
 
 These files are required for running HED-based edge detection in the library.
+
+## Texture Generation (SDXL + ControlNet)
+- Models (Hugging Face):
+  - SDXL Base: `stabilityai/stable-diffusion-xl-base-1.0`
+  - ControlNet (default): `diffusers/controlnet-lineart-sdxl-1.0`
+  - Alternatives: `diffusers/controlnet-canny-sdxl-1.0`, `diffusers/controlnet-depth-sdxl-1.0`
+- Install extras:
+  - `pip install diffusers transformers accelerate safetensors huggingface_hub scipy`
+- Usage example:
+  ```python
+  from PIL import Image
+  from rose.processing.texture_generator import TextureGenerator
+
+  # Load a UV-layout/edge/AO image in UV space as control
+  control_img = Image.open("uv_layout_overlay.png")
+
+  tg = TextureGenerator(
+      base_model_id="stabilityai/stable-diffusion-xl-base-1.0",
+      controlnet_id="diffusers/controlnet-lineart-sdxl-1.0",
+  )
+
+  result = tg.generate_textures(
+      control_image=control_img,
+      prompt="brushed stainless steel with subtle wear and fine grain",
+      negative_prompt="blurry, low detail",
+      seed=42,
+      steps=25,
+      guidance=5.0,
+      conditioning_scale=1.0,
+  )
+
+  result["albedo"].save("albedo.png")
+  result["normal"].save("normal.png")
+  result["roughness"].save("roughness.png")
+  ```
+Notes:
+- Accept the SDXL license on Hugging Face and log in (`huggingface-cli login`) if required.
+- For AMD/ROCm, install PyTorch ROCm wheels; diffusers uses the GPU if available.
 
 ## Running Tests
 To run all unit tests:
