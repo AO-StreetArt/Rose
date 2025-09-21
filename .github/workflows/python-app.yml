@@ -60,4 +60,4 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude experiments,design
     - name: Test with pytest
       run: |
-        PYTHONPATH=. pytest --ignore=tests/test_image_to_3d.py
+        PYTHONPATH=. pytest
