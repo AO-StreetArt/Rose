@@ -28,14 +28,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
         python - <<'PY'
-import torch
-import pathlib
-import os
+        import torch
+        import pathlib
+        import os
 
-torch_dir = pathlib.Path(torch.utils.cmake_prefix_path)
-with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as fh:
-    fh.write(f"Torch_DIR={torch_dir}\n")
-PY
+        torch_dir = pathlib.Path(torch.utils.cmake_prefix_path)
+        with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as fh:
+            fh.write(f"Torch_DIR={torch_dir}\n")
+        PY
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: actions-setup-redis
