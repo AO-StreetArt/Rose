@@ -37,7 +37,7 @@ class TextureGenerator:
     def __init__(
         self,
         base_model_id: str = "stabilityai/stable-diffusion-xl-base-1.0",
-        controlnet_id: str = "diffusers/controlnet-lineart-sdxl-1.0",
+        controlnet_id: str = "diffusers/controlnet-canny-sdxl-1.0",
         device: Optional[str] = None,
         dtype: Optional[torch.dtype] = None,
     ) -> None:
@@ -259,4 +259,3 @@ class TextureGenerator:
         normal = self.infer_normal_from_albedo(albedo)
         roughness = self.infer_roughness_from_albedo(albedo)
         return {"albedo": albedo, "normal": normal, "roughness": roughness}
-
