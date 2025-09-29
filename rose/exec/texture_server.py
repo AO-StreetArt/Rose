@@ -46,7 +46,7 @@ def _get_texture_generator() -> TextureGenerator:
     return _generator
 
 
-def _unauthorized_response() -> "flask.Response":
+def _unauthorized_response():
     response = make_response("", 401)
     response.headers["WWW-Authenticate"] = 'Basic realm="Texture Server", charset="UTF-8"'
     return response
