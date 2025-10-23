@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PIL import Image as PILImage
 
-from rose.processing.image_to_3d import ImageTo3DConverter
+from image_to_3d import ImageTo3DConverter
 
 
 dummy_image_path = "dummy.png"
@@ -42,10 +42,10 @@ def test_image_to_3d_triposr_official_backend_path(monkeypatch):
     image_context.__enter__.return_value = dummy_image
     image_context.__exit__.return_value = False
 
-    with patch("rose.processing.image_to_3d.TripoSRRunnerClass", DummyRunnerClass), \
-         patch("rose.processing.image_to_3d.TripoSRModel", None), \
-         patch("rose.processing.image_to_3d.TripoSRProcessor", None), \
-         patch("rose.processing.image_to_3d.Image", MagicMock(open=MagicMock(return_value=image_context))):
+    with patch("image_to_3d.TripoSRRunnerClass", DummyRunnerClass), \
+         patch("image_to_3d.TripoSRModel", None), \
+         patch("image_to_3d.TripoSRProcessor", None), \
+         patch("image_to_3d.Image", MagicMock(open=MagicMock(return_value=image_context))):
         converter = ImageTo3DConverter(device="cpu")
         result = converter.image_to_3d(dummy_image_path)
         assert result == "dummy_mesh"
@@ -55,10 +55,10 @@ def test_image_to_3d_triposr_official_backend_pil(monkeypatch):
     _ensure_dummy_torch(monkeypatch)
     DummyRunnerClass, _ = _build_dummy_runner()
 
-    with patch("rose.processing.image_to_3d.TripoSRRunnerClass", DummyRunnerClass), \
-         patch("rose.processing.image_to_3d.TripoSRModel", None), \
-         patch("rose.processing.image_to_3d.TripoSRProcessor", None), \
-         patch("rose.processing.image_to_3d.Image", PILImage):
+    with patch("image_to_3d.TripoSRRunnerClass", DummyRunnerClass), \
+         patch("image_to_3d.TripoSRModel", None), \
+         patch("image_to_3d.TripoSRProcessor", None), \
+         patch("image_to_3d.Image", PILImage):
         converter = ImageTo3DConverter(device="cpu")
         pil_image = PILImage.new("RGB", (4, 4), color="red")
         result = converter.image_to_3d(pil_image)
@@ -91,10 +91,10 @@ def test_image_to_3d_triposr_transformers_backend(monkeypatch):
     DummyModel = MagicMock()
     DummyModel.from_pretrained.return_value = model_instance
 
-    with patch("rose.processing.image_to_3d.TripoSRRunnerClass", None), \
-         patch("rose.processing.image_to_3d.TripoSRProcessor", DummyProcessor), \
-         patch("rose.processing.image_to_3d.TripoSRModel", DummyModel), \
-         patch("rose.processing.image_to_3d.Image", MagicMock(open=MagicMock(return_value=image_context))):
+    with patch("image_to_3d.TripoSRRunnerClass", None), \
+         patch("image_to_3d.TripoSRProcessor", DummyProcessor), \
+         patch("image_to_3d.TripoSRModel", DummyModel), \
+         patch("image_to_3d.Image", MagicMock(open=MagicMock(return_value=image_context))):
         converter = ImageTo3DConverter(device="cpu")
         result = converter.image_to_3d(dummy_image_path)
         assert result == "generated_mesh"
@@ -106,19 +106,19 @@ def test_image_to_3d_triposr_invalid_input(monkeypatch):
     _ensure_dummy_torch(monkeypatch)
     DummyRunnerClass, _ = _build_dummy_runner()
 
-    with patch("rose.processing.image_to_3d.TripoSRRunnerClass", DummyRunnerClass), \
-         patch("rose.processing.image_to_3d.TripoSRModel", None), \
-         patch("rose.processing.image_to_3d.TripoSRProcessor", None), \
-         patch("rose.processing.image_to_3d.Image", PILImage):
+    with patch("image_to_3d.TripoSRRunnerClass", DummyRunnerClass), \
+         patch("image_to_3d.TripoSRModel", None), \
+         patch("image_to_3d.TripoSRProcessor", None), \
+         patch("image_to_3d.Image", PILImage):
         converter = ImageTo3DConverter(device="cpu")
         with pytest.raises(TypeError):
             converter.image_to_3d(42)
 
 
 def test_image_to_3d_triposr_missing_dependencies(monkeypatch):
-    with patch("rose.processing.image_to_3d.TripoSRRunnerClass", None), \
-         patch("rose.processing.image_to_3d.TripoSRModel", None), \
-         patch("rose.processing.image_to_3d.TripoSRProcessor", None):
+    with patch("image_to_3d.TripoSRRunnerClass", None), \
+         patch("image_to_3d.TripoSRModel", None), \
+         patch("image_to_3d.TripoSRProcessor", None):
         with pytest.raises(ImportError):
             ImageTo3DConverter()
 
