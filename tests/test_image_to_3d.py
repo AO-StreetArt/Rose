@@ -1,4 +1,5 @@
 import pytest
+import types
 from pathlib import Path
 from contextlib import nullcontext
 from unittest.mock import MagicMock, patch
@@ -156,3 +157,39 @@ def test_image_to_3d_triposr_cube_real_execution(tmp_path):
 
     assert output_file.exists()
     assert output_file.read_text(encoding="utf-8").strip()
+
+
+def test_image_to_3d_3dtopia(monkeypatch):
+    dummy_pipeline_instance = MagicMock()
+    dummy_pipeline_instance.to.return_value = dummy_pipeline_instance
+    dummy_pipeline_instance.return_value = {
+        "mesh": "dummy_mesh",
+        "texture_images": ["dummy_texture.png"],
+        "materials": ["dummy_material"],
+    }
+
+    dummy_diffusers = types.SimpleNamespace(
+        from_pretrained=MagicMock(return_value=dummy_pipeline_instance)
+    )
+
+    def _generator_factory(device=None):
+        generator = MagicMock()
+        generator.manual_seed.return_value = generator
+        return generator
+
+    dummy_torch = types.SimpleNamespace(
+        float16="float16",
+        float32="float32",
+        Generator=_generator_factory,
+        cuda=types.SimpleNamespace(is_available=lambda: False),
+    )
+
+    with patch("rose.processing.image_to_3d.DiffusionPipeline", dummy_diffusers), \
+         patch("rose.processing.image_to_3d.torch", dummy_torch):
+        converter = ImageTo3DConverter(model_name="3DTopia/3DTopia-XL", device="cpu")
+        result = converter.image_to_3d_3dtopia("A 3D printed chair", seed=123, negative_prompt="broken")
+
+    assert result is not None
+    assert result["mesh"] == "dummy_mesh"
+    assert result["texture_images"] == ["dummy_texture.png"]
+    assert result["materials"] == ["dummy_material"]
