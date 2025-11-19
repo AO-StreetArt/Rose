@@ -4,18 +4,27 @@ pytest
 matplotlib
 tensorflow>=2.0.0
 timm>=0.9.0
-transformers>=4.41.0,<5.0
+transformers>=4.40.1,<5.0
 Pillow>=8.0.0
 numpy>=1.23.0,<2.0
 opencv-python>=4.5.0
 scikit-learn>=1.0.0
 redis>=4.5.0
+onnxruntime>=1.16.0
+scikit-build-core
+ninja
+pybind11[global]>=2.11
+simple-knn @ https://github.com/camenduru/simple-knn/archive/refs/heads/main.zip
+cubvh @ https://github.com/ashawkey/cubvh/archive/refs/heads/master.zip
 
 # Texture generation deps (SDXL + ControlNet via diffusers)
-diffusers>=0.27.0,<0.28.0
+diffusers>=0.19.3
 accelerate>=0.21.0
 safetensors>=0.4.0
-huggingface_hub>=0.20.0
+huggingface_hub>=0.20.0,<0.24.0
+
+# 3DTopia native pipeline fork
+git+https://github.com/AO-StreetArt/3DTopia-XL.git
 
 # Optional: sharper normal estimation fallback (used if available)
 scipy>=1.10.0
